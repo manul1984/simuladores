@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Lenguaje Binario - Científica</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root {
+            --azul-oscuro: #1A3A6B;
+            --naranja: #F47C20;
+            --azul-petroleo: #0D2137;
+            --blanco: #FFFFFF;
+            --gris-claro: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--gris-claro);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Contenedor Principal */
+        .app-container {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header UCSUR */
+        header {
+            background-color: var(--azul-oscuro);
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--naranja);
+        }
+
+        header h1 { margin: 0; font-size: 1.2rem; text-transform: uppercase; font-weight: bold; }
+        .tagline { background: var(--naranja); padding: 5px 10px; font-size: 0.7rem; font-weight: bold; border-radius: 3px; }
+
+        /* Pantallas */
+        .screen { padding: 40px; display: none; text-align: center; }
+        .screen.active { display: block; }
+
+        h2 { color: var(--azul-oscuro); margin-bottom: 20px; }
+
+        .cover-panel {
+            background: linear-gradient(135deg, var(--azul-oscuro), var(--azul-petroleo));
+            color: white;
+            border-radius: 18px;
+            padding: 32px 28px;
+            margin: 0 auto 24px;
+            max-width: 640px;
+            box-shadow: 0 18px 35px rgba(13, 33, 55, 0.22);
+        }
+
+        .cover-badge {
+            display: inline-block;
+            padding: 8px 14px;
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 999px;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+
+        .cover-title {
+            font-size: 2rem;
+            margin: 0 0 10px;
+        }
+
+        .cover-subtitle {
+            font-size: 1rem;
+            line-height: 1.6;
+            max-width: 520px;
+            margin: 0 auto 18px;
+            opacity: 0.95;
+        }
+
+        .cover-meta {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .cover-chip {
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.16);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+        }
+
+        .cover-credits {
+            margin-top: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Inputs y Botones */
+        input[type="text"], input[type="number"] {
+            padding: 12px;
+            width: 250px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: var(--naranja);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:hover { background-color: #d66a1a; }
+
+        /* Estilo de Juego */
+        .card {
+            background-color: var(--azul-petroleo);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .question-text { font-size: 1.5rem; margin-bottom: 15px; }
+        .score-board { margin-top: 20px; font-weight: bold; color: var(--azul-oscuro); }
+        .timer { color: var(--naranja); }
+
+        /* Gráficos */
+        #chartContainer { width: 100%; max-width: 400px; margin: 20px auto; }
+        
+        .hidden-report { position: absolute; left: -9999px; top: 0; width: 800px; background: white; padding: 40px; }
+
+        @media (max-width: 600px) {
+            .cover-title {
+                font-size: 1.6rem;
+            }
+
+            .cover-panel,
+            .screen {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>Universidad Científica</h1>
+            <div class="tagline">MEJORAS TÚ, MEJORA EL MUNDO.</div>
+        </header>
+
+        <div id="startScreen" class="screen active">
+            <div class="cover-panel">
+                <div class="cover-badge">Universidad Cientifica del Sur</div>
+                <h2 class="cover-title">Portada del Simulador de Lenguaje Binario</h2>
+                <p class="cover-subtitle">Practica conversiones entre sistema decimal y sistema binario en un reto de 10 preguntas con una duracion total de 5 minutos.</p>
+                <div class="cover-meta">
+                    <span class="cover-chip">10 preguntas</span>
+                    <span class="cover-chip">Decimal a binario</span>
+                    <span class="cover-chip">Binario a decimal</span>
+                    <span class="cover-chip">Tiempo maximo: 5 minutos</span>
+                </div>
+                <p class="cover-credits">Simulador elaborado por los profesores Manuel Santa Cruz y Dante Guerrero para el curso Legal Tech.</p>
+            </div>
+            <h2>Simulador de Lenguaje Binario</h2>
+            <p>Bienvenido. Por favor, ingresa tu nombre para comenzar la practica.</p>
+            <input type="text" id="userName" placeholder="Nombre completo" required>
+            <br>
+            <button onclick="startGame()">Comenzar Reto</button>
+        </div>
+
+        <div id="gameScreen" class="screen">
+            <div class="score-board">Puntos: <span id="points">0</span> | Pregunta: <span id="qCount">1</span>/10 | Tiempo: <span id="timeLeft" class="timer">05:00</span></div>
+            <div class="card">
+                <div id="instruction" style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 10px;">Convierte a binario:</div>
+                <div id="targetValue" class="question-text">--</div>
+                <input type="text" id="userAnswer" placeholder="Respuesta aquí" autocomplete="off">
+                <br>
+                <button onclick="checkAnswer()">Enviar</button>
+            </div>
+            <p id="feedback"></p>
+        </div>
+
+        <div id="resultScreen" class="screen">
+            <h2>¡Práctica Completada!</h2>
+            <p><strong id="displayFinalName"></strong>, tu puntaje final es:</p>
+            <h1 style="color: var(--naranja); font-size: 3rem;" id="finalScore">0</h1>
+            
+            <div id="chartContainer">
+                <canvas id="performanceChart"></canvas>
+            </div>
+
+            <button onclick="downloadPDF()">Descargar Reporte PDF</button>
+            <button onclick="location.reload()" style="background: var(--azul-oscuro); margin-left: 10px;">Reiniciar</button>
+        </div>
+    </div>
+
+    <div id="pdfContent" class="hidden-report">
+        <div style="border-bottom: 4px solid #F47C20; padding-bottom: 10px; margin-bottom: 20px;">
+            <h1 style="color: #1A3A6B; margin: 0;">Reporte de Desempeño</h1>
+            <p style="color: #666;">Universidad Científica del Sur</p>
+        </div>
+        <p><strong>Estudiante:</strong> <span id="pdfName"></span></p>
+        <p><strong>Fecha:</strong> <span id="pdfDate"></span></p>
+        <p><strong>Puntaje Total:</strong> <span id="pdfScore"></span> / 100</p>
+        <p><strong>Tiempo empleado:</strong> <span id="pdfTimeSpent"></span></p>
+        <p><strong>Estado:</strong> <span id="pdfStatus"></span></p>
+        <hr>
+        <h3>Análisis de Resultados:</h3>
+        <div style="width: 500px; margin: 0 auto; text-align: center;">
+            <img id="pdfChartImage" alt="Gráfico de desempeño" style="max-width: 100%; height: auto;">
+        </div>
+    </div>
+
+    <script>
+        const TOTAL_QUESTIONS = 10;
+        const EXERCISE_DURATION_SECONDS = 5 * 60;
+
+        let currentQuestion = 1;
+        let score = 0;
+        let correctAnswers = 0;
+        let incorrectAnswers = 0;
+        let targetValue = 0;
+        let playerName = "";
+        let timeLeft = EXERCISE_DURATION_SECONDS;
+        let timerInterval = null;
+        let gameFinished = false;
+        let performanceChart = null;
+        let completionStatus = "Completado";
+        let currentMode = "decimalToBinary";
+
+        function startGame() {
+            playerName = document.getElementById('userName').value;
+            if (playerName.trim() === "") {
+                alert("Por favor, ingresa tu nombre.");
+                return;
+            }
+            resetTimer();
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            startTimer();
+            nextQuestion();
+        }
+
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timeLeft').innerText = formatTime(timeLeft);
+        }
+
+        function resetTimer() {
+            timeLeft = EXERCISE_DURATION_SECONDS;
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (gameFinished) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    updateTimerDisplay();
+                    finishGame("Tiempo agotado");
+                }
+            }, 1000);
+        }
+
+        function nextQuestion() {
+            if (gameFinished) {
+                return;
+            }
+            document.getElementById('userAnswer').value = "";
+            document.getElementById('feedback').innerText = "";
+
+            currentMode = Math.random() < 0.5 ? "decimalToBinary" : "binaryToDecimal";
+            targetValue = Math.floor(Math.random() * 63) + 1;
+
+            if (currentMode === "decimalToBinary") {
+                document.getElementById('instruction').innerText = "Convierte a binario:";
+                document.getElementById('targetValue').innerText = targetValue;
+                document.getElementById('userAnswer').placeholder = "Escribe el numero en binario";
+            } else {
+                document.getElementById('instruction').innerText = "Convierte a decimal:";
+                document.getElementById('targetValue').innerText = targetValue.toString(2);
+                document.getElementById('userAnswer').placeholder = "Escribe el numero en decimal";
+            }
+
+            document.getElementById('qCount').innerText = currentQuestion;
+        }
+
+        function checkAnswer() {
+            if (gameFinished) {
+                return;
+            }
+
+            const userAns = document.getElementById('userAnswer').value.trim();
+            const correctAns = currentMode === "decimalToBinary"
+                ? targetValue.toString(2)
+                : String(targetValue);
+
+            if (userAns === correctAns) {
+                score += 10;
+                correctAnswers++;
+                document.getElementById('feedback').innerText = "¡Correcto! +10 puntos";
+                document.getElementById('feedback').style.color = "green";
+            } else {
+                incorrectAnswers++;
+                document.getElementById('feedback').innerText = `Incorrecto. Era: ${correctAns}`;
+                document.getElementById('feedback').style.color = "red";
+            }
+
+            document.getElementById('points').innerText = score;
+
+            if (currentQuestion < TOTAL_QUESTIONS) {
+                currentQuestion++;
+                setTimeout(nextQuestion, 1500);
+            } else {
+                setTimeout(() => finishGame("Completado"), 1500);
+            }
+        }
+
+        function finishGame(status) {
+            if (gameFinished) {
+                return;
+            }
+
+            gameFinished = true;
+            completionStatus = status;
+            clearInterval(timerInterval);
+            showResults();
+        }
+
+        function showResults() {
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('resultScreen').classList.add('active');
+            document.getElementById('displayFinalName').innerText = playerName;
+            document.getElementById('finalScore').innerText = score;
+            renderChart('performanceChart');
+        }
+
+        function renderChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+
+            performanceChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Correctas', 'Incorrectas'],
+                    datasets: [{
+                        data: [correctAnswers, incorrectAnswers],
+                        backgroundColor: ['#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            
+            // Llenar datos del PDF oculto
+            document.getElementById('pdfName').innerText = playerName;
+            document.getElementById('pdfScore').innerText = score;
+            document.getElementById('pdfDate').innerText = new Date().toLocaleDateString();
+            document.getElementById('pdfTimeSpent').innerText = formatTime(EXERCISE_DURATION_SECONDS - timeLeft);
+            document.getElementById('pdfStatus').innerText = completionStatus;
+            
+            const originalCanvas = document.getElementById('performanceChart');
+            document.getElementById('pdfChartImage').src = originalCanvas.toDataURL('image/png', 1.0);
+
+            const element = document.getElementById('pdfContent');
+            
+            // Usar html2canvas para capturar el reporte
+            const canvas = await html2canvas(element, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Resultado_Binario_${playerName}.pdf`);
+        }
+    </script>
+</body>
+</html>
