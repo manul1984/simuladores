@@ -3,431 +3,713 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Lenguaje Binario - Científica</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Simulador SNGA - Universidad Científica del Sur</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --azul-oscuro: #1A3A6B;
-            --naranja: #F47C20;
-            --azul-petroleo: #0D2137;
-            --blanco: #FFFFFF;
-            --gris-claro: #f4f4f4;
+            --blue-dark: #002b59;
+            --blue-light: #004a99;
+            --orange: #f37021;
+            --white: #ffffff;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--gris-claro);
+            background-color: var(--blue-dark);
+            color: var(--white);
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        /* Contenedor Principal */
-        .app-container {
+        .container {
             width: 90%;
-            max-width: 800px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
+            max-width: 1000px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
         }
-
-        /* Header UCSUR */
-        header {
-            background-color: var(--azul-oscuro);
-            color: white;
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 4px solid var(--naranja);
-        }
-
-        header h1 { margin: 0; font-size: 1.2rem; text-transform: uppercase; font-weight: bold; }
-        .tagline { background: var(--naranja); padding: 5px 10px; font-size: 0.7rem; font-weight: bold; border-radius: 3px; }
 
         /* Pantallas */
-        .screen { padding: 40px; display: none; text-align: center; }
+        .screen { display: none; }
         .screen.active { display: block; }
 
-        h2 { color: var(--azul-oscuro); margin-bottom: 20px; }
-
-        .cover-panel {
-            background: linear-gradient(135deg, var(--azul-oscuro), var(--azul-petroleo));
-            color: white;
-            border-radius: 18px;
-            padding: 32px 28px;
-            margin: 0 auto 24px;
-            max-width: 640px;
-            box-shadow: 0 18px 35px rgba(13, 33, 55, 0.22);
-        }
-
-        .cover-badge {
-            display: inline-block;
-            padding: 8px 14px;
-            border: 1px solid rgba(255,255,255,0.35);
-            border-radius: 999px;
-            font-size: 0.8rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            margin-bottom: 18px;
-        }
-
-        .cover-title {
-            font-size: 2rem;
-            margin: 0 0 10px;
-        }
-
-        .cover-subtitle {
-            font-size: 1rem;
-            line-height: 1.6;
-            max-width: 520px;
-            margin: 0 auto 18px;
-            opacity: 0.95;
-        }
-
-        .cover-meta {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .cover-chip {
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.16);
-            padding: 8px 14px;
-            border-radius: 999px;
-            font-size: 0.9rem;
-        }
-
-        .cover-credits {
-            margin-top: 18px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            opacity: 0.9;
-        }
-
-        /* Inputs y Botones */
-        input[type="text"], input[type="number"] {
-            padding: 12px;
-            width: 250px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
+        /* Logotipo Simulado */
+        .logo-area {
             margin-bottom: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .logo-univ { font-size: 1.2rem; margin-bottom: -10px; }
+        .logo-main { font-size: 3rem; color: var(--white); border-bottom: 4px solid var(--orange); display: inline-block; }
+
+        h1 { font-size: 2.5rem; margin-top: 30px; }
+
+        input[type="text"] {
+            padding: 15px;
+            width: 80%;
+            border-radius: 8px;
+            border: none;
+            margin: 20px 0;
+            font-size: 1rem;
         }
 
         button {
-            background-color: var(--naranja);
+            background-color: var(--orange);
             color: white;
             border: none;
-            padding: 12px 30px;
-            font-size: 1rem;
-            font-weight: bold;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 30px;
             cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:hover { background-color: #d15a16; transform: scale(1.05); }
+
+        .footer-credits {
+            margin-top: 50px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 20px;
+        }
+
+        /* Juego / Rompecabezas */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #timer { font-size: 1.5rem; font-weight: bold; color: var(--orange); }
+
+        .puzzle-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .column-header {
+            font-weight: bold;
+            padding: 10px;
+            background: var(--blue-light);
             border-radius: 5px;
-            transition: 0.3s;
-            text-transform: uppercase;
         }
 
-        button:hover { background-color: #d66a1a; }
-
-        /* Estilo de Juego */
-        .card {
-            background-color: var(--azul-petroleo);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin: 20px auto;
-            max-width: 400px;
+        .drop-zone {
+            height: 50px;
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed rgba(255,255,255,0.3);
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
         }
 
-        .question-text { font-size: 1.5rem; margin-bottom: 15px; }
-        .score-board { margin-top: 20px; font-weight: bold; color: var(--azul-oscuro); }
-        .timer { color: var(--naranja); }
+        .pieces-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
 
-        /* Gráficos */
-        #chartContainer { width: 100%; max-width: 400px; margin: 20px auto; }
-        
-        .hidden-report { position: absolute; left: -9999px; top: 0; width: 800px; background: white; padding: 40px; }
+        .piece {
+            padding: 8px 15px;
+            background: var(--white);
+            color: var(--blue-dark);
+            border-radius: 5px;
+            cursor: grab;
+            font-size: 0.9rem;
+            font-weight: bold;
+            user-select: none;
+        }
 
-        @media (max-width: 600px) {
-            .cover-title {
-                font-size: 1.6rem;
+        .piece.dragging { opacity: 0.5; }
+
+        /* Resultados */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            text-align: left;
+            margin-top: 20px;
+            align-items: start;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .results-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .result-card span {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .result-card strong {
+            font-size: 1.4rem;
+            color: var(--orange);
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            margin-top: 10px;
+        }
+
+        .details-table th,
+        .details-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .details-table th {
+            color: var(--orange);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            background: rgba(76, 175, 80, 0.2);
+            color: #8df094;
+        }
+
+        .status-bad {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ff9e98;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffd76a;
+        }
+
+        .charts-stack {
+            display: grid;
+            gap: 20px;
+        }
+
+        .chart-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .chart-panel h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
             }
 
-            .cover-panel,
-            .screen {
-                padding: 24px 20px;
+            .container {
+                padding: 24px;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <header>
-            <h1>Universidad Científica</h1>
-            <div class="tagline">MEJORAS TÚ, MEJORA EL MUNDO.</div>
-        </header>
+<div class="container">
+    <section id="screen-start" class="screen active">
+        <div class="logo-area">
+            <div class="logo-univ">UNIVERSIDAD</div>
+            <div class="logo-main">CIENTÍFICA</div>
+            <div style="color: var(--orange); font-size: 0.8rem; margin-top: 5px;">DEL SUR</div>
+        </div>
+        <h1>Simulador del SNGA</h1>
+        <p>Por favor, ingresa tu nombre para comenzar la evaluación.</p>
+        <input type="text" id="studentName" placeholder="Nombre Completo" required>
+        <br>
+        <button onclick="startSim()">Comencemos</button>
+        
+        <div class="footer-credits">
+            Simulador creado por Manuel Santa Cruz para la clase de Evaluación y Fiscalización Ambiental de la Universidad Científica del Sur
+        </div>
+    </section>
 
-        <div id="startScreen" class="screen active">
-            <div class="cover-panel">
-                <div class="cover-badge">Universidad Cientifica del Sur</div>
-                <h2 class="cover-title">Portada del Simulador de Lenguaje Binario</h2>
-                <p class="cover-subtitle">Practica conversiones entre sistema decimal y sistema binario en un reto de 10 preguntas con una duracion total de 5 minutos.</p>
-                <div class="cover-meta">
-                    <span class="cover-chip">10 preguntas</span>
-                    <span class="cover-chip">Decimal a binario</span>
-                    <span class="cover-chip">Binario a decimal</span>
-                    <span class="cover-chip">Tiempo maximo: 5 minutos</span>
+    <section id="screen-game" class="screen">
+        <div class="game-header">
+            <div id="user-display"></div>
+            <div id="timer">Tiempo: 02:00</div>
+        </div>
+
+        <div class="puzzle-board">
+            <div>
+                <div class="column-header">Sistema Funcional (SNGA)</div>
+                <div id="col-a-slots">
+                    <div class="drop-zone" data-col="A" data-row="1"></div>
+                    <div class="drop-zone" data-col="A" data-row="2"></div>
+                    <div class="drop-zone" data-col="A" data-row="3"></div>
+                    <div class="drop-zone" data-col="A" data-row="4"></div>
+                    <div class="drop-zone" data-col="A" data-row="5"></div>
                 </div>
-                <p class="cover-credits">Simulador elaborado por los profesores Manuel Santa Cruz y Dante Guerrero para el curso Legal Tech.</p>
             </div>
-            <h2>Simulador de Lenguaje Binario</h2>
-            <p>Bienvenido. Por favor, ingresa tu nombre para comenzar la practica.</p>
-            <input type="text" id="userName" placeholder="Nombre completo" required>
-            <br>
-            <button onclick="startGame()">Comenzar Reto</button>
+            <div>
+                <div class="column-header">Órgano Rector</div>
+                <div id="col-b-slots">
+                    <div class="drop-zone" data-col="B" data-row="1"></div>
+                    <div class="drop-zone" data-col="B" data-row="2"></div>
+                    <div class="drop-zone" data-col="B" data-row="3"></div>
+                    <div class="drop-zone" data-col="B" data-row="4"></div>
+                    <div class="drop-zone" data-col="B" data-row="5"></div>
+                </div>
+            </div>
         </div>
 
-        <div id="gameScreen" class="screen">
-            <div class="score-board">Puntos: <span id="points">0</span> | Pregunta: <span id="qCount">1</span>/10 | Tiempo: <span id="timeLeft" class="timer">05:00</span></div>
-            <div class="card">
-                <div id="instruction" style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 10px;">Convierte a binario:</div>
-                <div id="targetValue" class="question-text">--</div>
-                <input type="text" id="userAnswer" placeholder="Respuesta aquí" autocomplete="off">
-                <br>
-                <button onclick="checkAnswer()">Enviar</button>
-            </div>
-            <p id="feedback"></p>
-        </div>
+        <button onclick="finishGame()">LISTO</button>
 
-        <div id="resultScreen" class="screen">
-            <h2>¡Práctica Completada!</h2>
-            <p><strong id="displayFinalName"></strong>, tu puntaje final es:</p>
-            <h1 style="color: var(--naranja); font-size: 3rem;" id="finalScore">0</h1>
+        <div class="pieces-pool" id="pool-a">
+            </div>
+        <div class="pieces-pool" id="pool-b" style="border-top: 1px solid rgba(255,255,255,0.1);">
+            </div>
+    </section>
+
+    <section id="screen-results" class="screen">
+        <h2>Resultados de la Evaluación</h2>
+        <div id="results-summary"></div>
+        <div id="results-cards" class="results-cards"></div>
+        <div class="results-grid">
+            <div id="feedback-list"></div>
+            <div class="charts-stack">
+                <div class="chart-panel">
+                    <h3>Distribución de respuestas</h3>
+                    <div class="chart-container">
+                        <canvas id="resultsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-panel">
+                    <h3>Indicadores del alumno</h3>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <button onclick="generatePDF()">Descargar en PDF</button>
+    </section>
+</div>
+
+<script>
+    let timeLeft = 120;
+    let timerId;
+    let studentName = "";
+    let resultsChart;
+    let performanceChart;
+    const correctPairs = [
+        {a: "SEIA", b: "Minam"},
+        {a: "SINEFA", b: "OEFA"},
+        {a: "Sinanpe", b: "Sernanp"},
+        {a: "Sinia", b: "Minam"},
+        {a: "SNGRH", b: "ANA"}
+    ];
+
+    const piecesA = ["SEIA", "SINEFA", "Sinanpe", "Sinia", "SNGRH", "Sinafor", "Seconfia", "Sinada", "Cofema", "Abastecimiento", "Control", "Presupuesto"];
+    const piecesB = ["Minam", "OEFA", "Sernanp", "Minam", "ANA", "Senace", "Osinfor", "Serfor", "IGP", "Osinergmin"];
+
+    function formatTime(totalSeconds) {
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins}m ${secs}s`;
+    }
+
+    function startSim() {
+        studentName = document.getElementById('studentName').value;
+        if(!studentName) return alert("Ingresa tu nombre");
+
+        timeLeft = 120;
+        finalStats = {};
+        
+        document.getElementById('screen-start').classList.remove('active');
+        document.getElementById('screen-game').classList.add('active');
+        document.getElementById('user-display').innerText = "Alumno: " + studentName;
+        document.getElementById('timer').innerText = "Tiempo: 02:00";
+        
+        initPools();
+        startTimer();
+    }
+
+    function initPools() {
+        const poolA = document.getElementById('pool-a');
+        const poolB = document.getElementById('pool-b');
+        poolA.innerHTML = '';
+        poolB.innerHTML = '';
+        document.querySelectorAll('.drop-zone').forEach(zone => zone.innerHTML = '');
+        
+        piecesA.sort(() => Math.random() - 0.5).forEach(text => {
+            poolA.appendChild(createPiece(text, 'A'));
+        });
+        
+        piecesB.sort(() => Math.random() - 0.5).forEach(text => {
+            poolB.appendChild(createPiece(text, 'B'));
+        });
+
+        setupDragAndDrop();
+    }
+
+    function createPiece(text, type) {
+        const div = document.createElement('div');
+        div.className = 'piece';
+        div.draggable = true;
+        div.innerText = text;
+        div.dataset.type = type;
+        div.id = 'p-' + Math.random().toString(36).substr(2, 9);
+        return div;
+    }
+
+    function setupDragAndDrop() {
+        const pieces = document.querySelectorAll('.piece');
+        const zones = document.querySelectorAll('.drop-zone');
+
+        pieces.forEach(p => {
+            p.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', p.id);
+                p.classList.add('dragging');
+            });
+            p.addEventListener('dragend', () => p.classList.remove('dragging'));
+        });
+
+        zones.forEach(z => {
+            z.addEventListener('dragover', e => e.preventDefault());
+            z.addEventListener('drop', e => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData('text/plain');
+                const piece = document.getElementById(id);
+                
+                // Solo permitir en la columna correcta
+                if(z.dataset.col === piece.dataset.type) {
+                    if(z.children.length > 0) {
+                        const oldPiece = z.children[0];
+                        document.getElementById(piece.dataset.type === 'A' ? 'pool-a' : 'pool-b').appendChild(oldPiece);
+                    }
+                    z.appendChild(piece);
+                }
+            });
+        });
+    }
+
+    function startTimer() {
+        timerId = setInterval(() => {
+            timeLeft--;
+            let mins = Math.floor(timeLeft / 60);
+            let secs = timeLeft % 60;
+            document.getElementById('timer').innerText = `Tiempo: ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
             
-            <div id="chartContainer">
-                <canvas id="performanceChart"></canvas>
-            </div>
+            if(timeLeft <= 0) finishGame();
+        }, 1000);
+    }
 
-            <button onclick="downloadPDF()">Descargar Reporte PDF</button>
-            <button onclick="location.reload()" style="background: var(--azul-oscuro); margin-left: 10px;">Reiniciar</button>
-        </div>
-    </div>
+    let finalStats = {};
 
-    <div id="pdfContent" class="hidden-report">
-        <div style="border-bottom: 4px solid #F47C20; padding-bottom: 10px; margin-bottom: 20px;">
-            <h1 style="color: #1A3A6B; margin: 0;">Reporte de Desempeño</h1>
-            <p style="color: #666;">Universidad Científica del Sur</p>
-        </div>
-        <p><strong>Estudiante:</strong> <span id="pdfName"></span></p>
-        <p><strong>Fecha:</strong> <span id="pdfDate"></span></p>
-        <p><strong>Puntaje Total:</strong> <span id="pdfScore"></span> / 100</p>
-        <p><strong>Tiempo empleado:</strong> <span id="pdfTimeSpent"></span></p>
-        <p><strong>Estado:</strong> <span id="pdfStatus"></span></p>
-        <hr>
-        <h3>Análisis de Resultados:</h3>
-        <div style="width: 500px; margin: 0 auto; text-align: center;">
-            <img id="pdfChartImage" alt="Gráfico de desempeño" style="max-width: 100%; height: auto;">
-        </div>
-    </div>
-
-    <script>
-        const TOTAL_QUESTIONS = 10;
-        const EXERCISE_DURATION_SECONDS = 5 * 60;
-
-        let currentQuestion = 1;
+    function finishGame() {
+        clearInterval(timerId);
         let score = 0;
-        let correctAnswers = 0;
-        let incorrectAnswers = 0;
-        let targetValue = 0;
-        let playerName = "";
-        let timeLeft = EXERCISE_DURATION_SECONDS;
-        let timerInterval = null;
-        let gameFinished = false;
-        let performanceChart = null;
-        let completionStatus = "Completado";
-        let currentMode = "decimalToBinary";
+        let pointsGained = 0;
+        let pointsLost = 0;
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let filledRows = 0;
+        let unansweredCount = 0;
+        const rowDetails = [];
 
-        function startGame() {
-            playerName = document.getElementById('userName').value;
-            if (playerName.trim() === "") {
-                alert("Por favor, ingresa tu nombre.");
-                return;
-            }
-            resetTimer();
-            document.getElementById('startScreen').classList.remove('active');
-            document.getElementById('gameScreen').classList.add('active');
-            startTimer();
-            nextQuestion();
-        }
+        for(let i=1; i<=5; i++) {
+            const slotA = document.querySelector(`.drop-zone[data-col="A"][data-row="${i}"]`);
+            const slotB = document.querySelector(`.drop-zone[data-col="B"][data-row="${i}"]`);
+            const valA = slotA.children.length > 0 ? slotA.children[0].innerText : "Sin respuesta";
+            const valB = slotB.children.length > 0 ? slotB.children[0].innerText : "Sin respuesta";
+            let rowStatus = "Sin responder";
+            let rowClass = "status-pending";
+            let rowPoints = 0;
+            
+            if(slotA.children.length > 0 || slotB.children.length > 0) filledRows++;
 
-        function formatTime(totalSeconds) {
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-
-        function updateTimerDisplay() {
-            document.getElementById('timeLeft').innerText = formatTime(timeLeft);
-        }
-
-        function resetTimer() {
-            timeLeft = EXERCISE_DURATION_SECONDS;
-            updateTimerDisplay();
-        }
-
-        function startTimer() {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (gameFinished) {
-                    clearInterval(timerInterval);
-                    return;
+            if(slotA.children.length > 0 && slotB.children.length > 0) {
+                const isCorrect = correctPairs.some(p => p.a === valA && p.b === valB);
+                
+                if(isCorrect) {
+                    pointsGained += 20;
+                    correctCount++;
+                    rowStatus = "Correcta";
+                    rowClass = "status-ok";
+                    rowPoints = 20;
+                } else {
+                    pointsLost += 5;
+                    incorrectCount++;
+                    rowStatus = "Incorrecta";
+                    rowClass = "status-bad";
+                    rowPoints = -5;
                 }
-
-                timeLeft--;
-                updateTimerDisplay();
-
-                if (timeLeft <= 0) {
-                    timeLeft = 0;
-                    updateTimerDisplay();
-                    finishGame("Tiempo agotado");
-                }
-            }, 1000);
-        }
-
-        function nextQuestion() {
-            if (gameFinished) {
-                return;
-            }
-            document.getElementById('userAnswer').value = "";
-            document.getElementById('feedback').innerText = "";
-
-            currentMode = Math.random() < 0.5 ? "decimalToBinary" : "binaryToDecimal";
-            targetValue = Math.floor(Math.random() * 63) + 1;
-
-            if (currentMode === "decimalToBinary") {
-                document.getElementById('instruction').innerText = "Convierte a binario:";
-                document.getElementById('targetValue').innerText = targetValue;
-                document.getElementById('userAnswer').placeholder = "Escribe el numero en binario";
             } else {
-                document.getElementById('instruction').innerText = "Convierte a decimal:";
-                document.getElementById('targetValue').innerText = targetValue.toString(2);
-                document.getElementById('userAnswer').placeholder = "Escribe el numero en decimal";
+                unansweredCount++;
             }
 
-            document.getElementById('qCount').innerText = currentQuestion;
-        }
-
-        function checkAnswer() {
-            if (gameFinished) {
-                return;
-            }
-
-            const userAns = document.getElementById('userAnswer').value.trim();
-            const correctAns = currentMode === "decimalToBinary"
-                ? targetValue.toString(2)
-                : String(targetValue);
-
-            if (userAns === correctAns) {
-                score += 10;
-                correctAnswers++;
-                document.getElementById('feedback').innerText = "¡Correcto! +10 puntos";
-                document.getElementById('feedback').style.color = "green";
-            } else {
-                incorrectAnswers++;
-                document.getElementById('feedback').innerText = `Incorrecto. Era: ${correctAns}`;
-                document.getElementById('feedback').style.color = "red";
-            }
-
-            document.getElementById('points').innerText = score;
-
-            if (currentQuestion < TOTAL_QUESTIONS) {
-                currentQuestion++;
-                setTimeout(nextQuestion, 1500);
-            } else {
-                setTimeout(() => finishGame("Completado"), 1500);
-            }
-        }
-
-        function finishGame(status) {
-            if (gameFinished) {
-                return;
-            }
-
-            gameFinished = true;
-            completionStatus = status;
-            clearInterval(timerInterval);
-            showResults();
-        }
-
-        function showResults() {
-            document.getElementById('gameScreen').classList.remove('active');
-            document.getElementById('resultScreen').classList.add('active');
-            document.getElementById('displayFinalName').innerText = playerName;
-            document.getElementById('finalScore').innerText = score;
-            renderChart('performanceChart');
-        }
-
-        function renderChart(canvasId) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (performanceChart) {
-                performanceChart.destroy();
-            }
-
-            performanceChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Correctas', 'Incorrectas'],
-                    datasets: [{
-                        data: [correctAnswers, incorrectAnswers],
-                        backgroundColor: ['#28a745', '#dc3545']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
-                }
+            rowDetails.push({
+                row: i,
+                valueA: valA,
+                valueB: valB,
+                status: rowStatus,
+                statusClass: rowClass,
+                points: rowPoints
             });
         }
 
-        async function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            
-            // Llenar datos del PDF oculto
-            document.getElementById('pdfName').innerText = playerName;
-            document.getElementById('pdfScore').innerText = score;
-            document.getElementById('pdfDate').innerText = new Date().toLocaleDateString();
-            document.getElementById('pdfTimeSpent').innerText = formatTime(EXERCISE_DURATION_SECONDS - timeLeft);
-            document.getElementById('pdfStatus').innerText = completionStatus;
-            
-            const originalCanvas = document.getElementById('performanceChart');
-            document.getElementById('pdfChartImage').src = originalCanvas.toDataURL('image/png', 1.0);
+        score = pointsGained - pointsLost;
+        const timeSpent = 120 - timeLeft;
+        const attemptedRows = correctCount + incorrectCount;
+        const accuracyPercent = attemptedRows ? Math.round((correctCount / attemptedRows) * 100) : 0;
+        const completionPercent = Math.round((filledRows / 5) * 100);
+        const avgTimePerAnswered = attemptedRows ? Math.round(timeSpent / attemptedRows) : 0;
+        const scorePercent = Math.max(0, Math.round((score / 100) * 100));
 
-            const element = document.getElementById('pdfContent');
-            
-            // Usar html2canvas para capturar el reporte
-            const canvas = await html2canvas(element, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Resultado_Binario_${playerName}.pdf`);
+        finalStats = {
+            name: studentName,
+            course: "Evaluación y Fiscalización Ambiental",
+            time: formatTime(timeSpent),
+            timeSpentSeconds: timeSpent,
+            remainingTime: formatTime(timeLeft),
+            correct: correctCount,
+            incorrect: incorrectCount,
+            unanswered: unansweredCount,
+            gained: pointsGained,
+            lost: pointsLost,
+            total: score,
+            attemptedRows,
+            filledRows,
+            filledPercent: completionPercent,
+            accuracyPercent,
+            avgTimePerAnswered,
+            scorePercent,
+            rowDetails
+        };
+
+        showResults();
+    }
+
+    function showResults() {
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('screen-results').classList.add('active');
+
+        document.getElementById('results-summary').innerHTML = `
+            <p><strong>Estudiante:</strong> ${finalStats.name}</p>
+            <p><strong>Puntaje Final:</strong> ${finalStats.total} pts</p>
+            <p><strong>Curso:</strong> ${finalStats.course}</p>
+        `;
+
+        document.getElementById('results-cards').innerHTML = `
+            <div class="result-card"><span>Tiempo empleado</span><strong>${finalStats.time}</strong></div>
+            <div class="result-card"><span>Tiempo restante</span><strong>${finalStats.remainingTime}</strong></div>
+            <div class="result-card"><span>Aciertos</span><strong>${finalStats.correct}</strong></div>
+            <div class="result-card"><span>Errores</span><strong>${finalStats.incorrect}</strong></div>
+            <div class="result-card"><span>Precisión</span><strong>${finalStats.accuracyPercent}%</strong></div>
+            <div class="result-card"><span>Completitud</span><strong>${finalStats.filledPercent}%</strong></div>
+        `;
+
+        document.getElementById('feedback-list').innerHTML = `
+            <h3>Detalle de respuestas</h3>
+            <table class="details-table">
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Sistema</th>
+                        <th>Órgano rector</th>
+                        <th>Estado</th>
+                        <th>Puntaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${finalStats.rowDetails.map(detail => `
+                        <tr>
+                            <td>${detail.row}</td>
+                            <td>${detail.valueA}</td>
+                            <td>${detail.valueB}</td>
+                            <td><span class="status-badge ${detail.statusClass}">${detail.status}</span></td>
+                            <td>${detail.points > 0 ? '+' : ''}${detail.points}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        renderCharts();
+    }
+
+    function renderCharts() {
+        if(resultsChart) resultsChart.destroy();
+        if(performanceChart) performanceChart.destroy();
+
+        resultsChart = new Chart(document.getElementById('resultsChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Aciertos', 'Errores', 'Sin responder'],
+                datasets: [{
+                    data: [finalStats.correct, finalStats.incorrect, finalStats.unanswered],
+                    backgroundColor: ['#4CAF50', '#f44336', '#FFC107']
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                }
+            }
+        });
+
+        performanceChart = new Chart(document.getElementById('performanceChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Precisión', 'Completitud', 'Puntaje'],
+                datasets: [{
+                    label: 'Porcentaje',
+                    data: [finalStats.accuracyPercent, finalStats.filledPercent, finalStats.scorePercent],
+                    backgroundColor: ['#1e88e5', '#f37021', '#8e24aa'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#ffffff' },
+                        grid: { color: 'rgba(255,255,255,0.15)' }
+                    },
+                    x: {
+                        ticks: { color: '#ffffff' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function setChartTextColor(color) {
+        if(resultsChart) {
+            resultsChart.options.plugins.legend.labels.color = color;
+            resultsChart.update('none');
         }
-    </script>
+
+        if(performanceChart) {
+            performanceChart.options.scales.y.ticks.color = color;
+            performanceChart.options.scales.x.ticks.color = color;
+            performanceChart.update('none');
+        }
+    }
+
+    async function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        setChartTextColor('#000000');
+        const distributionChart = document.getElementById('resultsChart');
+        const indicatorsChart = document.getElementById('performanceChart');
+        
+        doc.setFillColor(0, 43, 89);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.text("REPORTE DE SIMULACIÓN SNGA", 20, 25);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(12);
+        let y = 60;
+        doc.text(`Nombre: ${finalStats.name}`, 20, y);
+        doc.text(`Curso: ${finalStats.course}`, 20, y += 10);
+        doc.text(`Tiempo empleado: ${finalStats.time}`, 20, y += 10);
+        doc.text(`Tiempo restante: ${finalStats.remainingTime}`, 20, y += 10);
+        doc.text(`Precisión: ${finalStats.accuracyPercent}%`, 20, y += 10);
+        doc.text(`Porcentaje de completitud: ${finalStats.filledPercent}%`, 20, y += 10);
+        
+        doc.line(20, y += 10, 190, y);
+        
+        doc.text(`Relaciones Correctas: ${finalStats.correct}`, 20, y += 15);
+        doc.text(`Relaciones Incorrectas: ${finalStats.incorrect}`, 20, y += 10);
+        doc.text(`Sin responder: ${finalStats.unanswered}`, 20, y += 10);
+        doc.text(`Puntos Ganados (+20): ${finalStats.gained}`, 20, y += 10);
+        doc.text(`Puntos Restados (-5): ${finalStats.lost}`, 20, y += 10);
+        doc.text(`Tiempo promedio por respuesta: ${formatTime(finalStats.avgTimePerAnswered)}`, 20, y += 10);
+        
+        doc.setFontSize(16);
+        doc.text(`PUNTAJE TOTAL: ${finalStats.total} / 100`, 20, y += 20);
+
+        if(distributionChart) {
+            doc.addImage(distributionChart.toDataURL('image/png'), 'PNG', 20, y += 10, 75, 75);
+        }
+        if(indicatorsChart) {
+            doc.addImage(indicatorsChart.toDataURL('image/png'), 'PNG', 110, y, 75, 75);
+        }
+
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.text("Detalle de respuestas del alumno", 20, 20);
+        doc.setFontSize(11);
+        let detailY = 35;
+        finalStats.rowDetails.forEach(detail => {
+            doc.text(
+                `Fila ${detail.row}: ${detail.valueA} / ${detail.valueB} - ${detail.status} (${detail.points > 0 ? '+' : ''}${detail.points} pts)`,
+                20,
+                detailY
+            );
+            detailY += 10;
+        });
+
+        setChartTextColor('#ffffff');
+        
+        doc.save(`Reporte_SNGA_${finalStats.name}.pdf`);
+    }
+</script>
+
 </body>
 </html>
