@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Quest - Rescata al Robot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --ucsur-blue: #002d56;
+            --ucsur-orange: #f38121;
+            --ucsur-light: #f4f7f9;
+            --ucsur-dark: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--ucsur-light);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Estilo UCSUR */
+        .header-banner {
+            background-color: white;
+            padding: 10px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--ucsur-orange);
+        }
+
+        .header-banner h1 {
+            color: var(--ucsur-blue);
+            font-size: 1.2rem;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .motto {
+            background-color: var(--ucsur-orange);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        /* Contenedor Principal */
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Pantalla de Inicio */
+        .card {
+            background: var(--ucsur-blue);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 { font-size: 2rem; margin-bottom: 20px; }
+        
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-start {
+            background-color: var(--ucsur-orange);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-start:hover { transform: scale(1.05); }
+
+        .credits { font-size: 0.8rem; margin-top: 30px; opacity: 0.8; }
+
+        /* Pantalla de Juego */
+        #game-screen, #results-screen { display: none; width: 100%; max-width: 1000px; }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 20px;
+        }
+
+        .left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .mission-panel { border-left: 5px solid var(--ucsur-orange); }
+
+        .help-panel {
+            border-left: 5px solid var(--ucsur-blue);
+        }
+
+        .help-panel h4 {
+            margin-top: 0;
+            color: var(--ucsur-blue);
+        }
+
+        .help-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .help-option {
+            border: 1px solid #d7dfe6;
+            border-radius: 10px;
+            padding: 12px;
+            background: #f9fbfc;
+        }
+
+        .help-option strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--ucsur-blue);
+        }
+
+        .help-option pre {
+            margin: 0;
+            padding: 10px;
+            background: #1f2933;
+            color: #e7f5ff;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        /* Consola Simulada */
+        #editor {
+            width: 100%;
+            height: 150px;
+            background: #2d2d2d;
+            color: #76ff03;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            border-radius: 8px;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        .console {
+            background: black;
+            color: white;
+            padding: 10px;
+            min-height: 120px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-y: auto;
+        }
+
+        .console-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .console-input-row {
+            display: none;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .console-input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #c8d4df;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-secondary {
+            background: var(--ucsur-blue);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Robot y Visuales */
+        .visual-container { text-align: center; }
+        .robot { font-size: 50px; transition: all 0.5s; }
+        .energy-bar {
+            background: #ddd;
+            height: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        #energy-fill {
+            background: var(--ucsur-orange);
+            width: 100%;
+            height: 100%;
+            transition: width 0.5s;
+        }
+
+        /* Resultados */
+        #results-screen {
+            max-width: 1120px;
+            width: 100%;
+            padding: 28px;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+        }
+
+        .results-hero {
+            background: linear-gradient(135deg, var(--ucsur-blue) 0%, #0d4d83 100%);
+            color: white;
+            border-radius: 18px;
+            padding: 28px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .results-hero h2 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+        }
+
+        .results-hero p {
+            margin: 0;
+            opacity: 0.92;
+            line-height: 1.5;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 10px 24px rgba(0, 45, 86, 0.08);
+            text-align: left;
+            border-top: 4px solid var(--ucsur-orange);
+        }
+
+        .summary-card span {
+            display: block;
+            font-size: 0.82rem;
+            color: #4f6478;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .summary-card strong {
+            font-size: 1.8rem;
+            color: var(--ucsur-blue);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.9fr;
+            gap: 20px;
+            margin-top: 20px;
+            align-items: start;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .chart-card,
+        .details-card {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 10px 24px rgba(0, 45, 86, 0.08);
+            text-align: left;
+        }
+
+        .chart-card h3,
+        .details-card h3 {
+            margin-top: 0;
+            margin-bottom: 14px;
+            color: var(--ucsur-blue);
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details-table td {
+            padding: 11px 4px;
+            border-bottom: 1px solid #e4ebf1;
+        }
+
+        .details-table td:last-child {
+            text-align: right;
+            font-weight: bold;
+            color: var(--ucsur-blue);
+        }
+
+        .badge-scale {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid #e4ebf1;
+        }
+
+        .badge-scale h4 {
+            margin: 0 0 10px 0;
+            color: var(--ucsur-blue);
+        }
+
+        .badge-scale-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #d8e2ea;
+            font-size: 0.95rem;
+        }
+
+        .badge-scale-item strong {
+            color: var(--ucsur-blue);
+        }
+
+        .level-breakdown {
+            margin-top: 18px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .level-row {
+            display: grid;
+            grid-template-columns: 90px 1fr auto auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #f5f8fb;
+            font-size: 0.95rem;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            background: #d7f7df;
+            color: #166534;
+        }
+
+        .status-warn {
+            background: #fff3cd;
+            color: #9a6700;
+        }
+
+        canvas { max-width: 100%; }
+
+        @media (max-width: 900px) {
+            .game-grid,
+            .stats-grid,
+            .charts-grid,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .level-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="header-banner">
+        <h1>Universidad Científica</h1>
+        <div class="motto">MEJORAS TÚ, MEJORA EL MUNDO.</div>
+    </header>
+
+    <div class="container">
+        <div id="intro-screen" class="card">
+            <div style="border: 1px solid white; display: inline-block; padding: 5px 20px; border-radius: 20px; margin-bottom: 20px; font-size: 0.8rem;">
+                UNIVERSIDAD CIENTÍFICA DEL SUR
+            </div>
+            <h2>PYTHON QUEST – RESCATA AL ROBOT</h2>
+            <p>Bienvenido. Por favor, ingresa tu nombre para comenzar la practica.</p>
+            
+            <input type="text" id="student-name" placeholder="Nombre completo">
+            <br>
+            <button class="btn-start" onclick="startGame()">COMENZAR RETO</button>
+            
+            <div class="credits">
+                Simulador elaborado por los profesores Manuel Santa Cruz y Dante Guerrero para el curso Legal Tech.
+            </div>
+        </div>
+
+        <div id="game-screen">
+            <div class="game-grid">
+                <div class="left-col">
+                    <div class="panel mission-panel">
+                        <h3 id="level-title">Nivel 1: Print</h3>
+                        <p id="mission-text">Haz que el robot diga "Hola mundo"</p>
+                        <div class="visual-container">
+                            <div class="robot" id="robot-icon">🤖</div>
+                            <div class="energy-bar"><div id="energy-fill"></div></div>
+                            <small>Progreso de Misión</small>
+                        </div>
+                    </div>
+
+                    <div class="panel help-panel">
+                        <h4>Ayuda: elige una opción</h4>
+                        <p style="margin-top: 0;">Observa las alternativas y escribe en el editor la que consideres correcta.</p>
+                        <div class="help-list" id="help-options"></div>
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    <div class="panel">
+                        <h4>Editor de Código Python</h4>
+                        <textarea id="editor" spellcheck="false" placeholder="Escribe tu código aquí..."></textarea>
+                        <button class="btn-start" style="width: 100%; margin-top: 10px;" onclick="checkLevel()">EJECUTAR CÓDIGO</button>
+                        <div class="console" id="console-out">>>> Esperando ejecución...</div>
+                        <div class="console-input-row" id="console-input-row">
+                            <input type="text" id="console-input" placeholder="Escribe tu respuesta para input()" onkeydown="handleConsoleInputKey(event)">
+                            <button class="btn-secondary" id="console-input-btn" style="display: inline-flex;" onclick="submitConsoleInput()">ENVIAR</button>
+                        </div>
+                        <div class="console-actions">
+                            <button id="continue-btn" class="btn-secondary" onclick="continueAfterError()">CONTINUAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="results-screen" class="panel">
+            <div class="results-hero">
+                <h2>Resumen Final del Desempeño</h2>
+                <p id="result-welcome"></p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Puntos Totales</span>
+                    <strong id="stat-points">0</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Aciertos</span>
+                    <strong id="stat-correct">0</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Errores</span>
+                    <strong id="stat-errors">0</strong>
+                </div>
+                <div class="summary-card">
+                    <span>Insignia</span>
+                    <strong id="stat-badge">---</strong>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Puntos por Nivel</h3>
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Relación de Aciertos y Errores</h3>
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="details-card">
+                    <h3>Indicadores del Juego</h3>
+                    <table class="details-table">
+                        <tr><td>Tiempo Total</td><td id="stat-time">0s</td></tr>
+                        <tr><td>Tiempo Promedio</td><td id="stat-average-time">0s</td></tr>
+                        <tr><td>Niveles Completados</td><td id="stat-levels">0/6</td></tr>
+                    </table>
+
+                    <div class="level-breakdown" id="level-breakdown"></div>
+
+                    <div class="badge-scale">
+                        <h4>Escala de Insignias</h4>
+                        <div id="badge-scale-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-start" style="margin-top: 30px;" onclick="downloadPDF()">DESCARGAR REPORTE PDF</button>
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let points = 0;
+        let startTime, endTime, levelStartTime;
+        let timesPerLevel = [];
+        let levelScores = [];
+        let levelStatuses = [];
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+        let studentName = "";
+        let performanceChartInstance = null;
+        let accuracyChartInstance = null;
+        let pendingInputSession = null;
+
+        const levels = [
+            {
+                title: "NIVEL 1 – PRINT",
+                mission: "Haz que el robot diga 'Hola mundo'",
+                solution: /print\s*\(\s*["']Hola mundo["']\s*\)/,
+                output: "Hola mundo",
+                options: [
+                    'print("Hola mundo")',
+                    'print("Hola robot")',
+                    'println("Hola mundo")'
+                ],
+                feedback: [
+                    { pattern: /println/i, message: "Usaste `println`, pero en Python la función correcta es `print`." },
+                    { pattern: /Hola robot/i, message: "El texto no coincide: el robot debe decir exactamente `Hola mundo`." }
+                ]
+            },
+            {
+                title: "NIVEL 2 – OPERADORES",
+                mission: "El robot tiene 5 de energía y gana 3 más. Calcula el total.",
+                solution: /print\s*\(\s*5\s*\+\s*3\s*\)/,
+                output: "8",
+                options: [
+                    'print(5 + 3)',
+                    'print(5 - 3)',
+                    '5 + 3'
+                ],
+                feedback: [
+                    { pattern: /5\s*-\s*3/, message: "Restaste en lugar de sumar. El reto pide agregar 3 a la energía inicial." },
+                    { pattern: /^(?!.*print).*5\s*\+\s*3/s, message: "La operación está bien encaminada, pero falta mostrar el resultado con `print`." }
+                ]
+            },
+            {
+                title: "NIVEL 3 – VARIABLES",
+                mission: "Guarda el nombre 'RoboMax' en una variable e imprímela.",
+                solution: /nombre\s*=\s*["']RoboMax["']\s*print\s*\(\s*nombre\s*\)/s,
+                output: "RoboMax",
+                options: [
+                    'nombre = "RoboMax"\nprint(nombre)',
+                    'print("RoboMax")',
+                    'nombre == "RoboMax"\nprint(nombre)'
+                ],
+                feedback: [
+                    { pattern: /==/, message: "Usaste `==`, que sirve para comparar. Aquí necesitas asignar con `=`." },
+                    { pattern: /^print\s*\(\s*["']RoboMax["']\s*\)\s*$/s, message: "Imprimiste el texto, pero faltó guardarlo primero en una variable." }
+                ]
+            },
+            {
+                title: "NIVEL 4 – INPUT",
+                mission: "Pide el nombre del usuario con `input` y luego muestra un saludo usando `print`.",
+                solution: /input[\s\S]*print|print[\s\S]*input/,
+                output: "Hola [Usuario]",
+                simulatedInputs: ["Lucia"],
+                options: [
+                    'nombre = input("¿Cómo te llamas? ")\nprint("Hola", nombre)',
+                    'print("Hola", input("¿Cómo te llamas? "))',
+                    'nombre = "Ana"\nprint(nombre)'
+                ],
+                feedback: [
+                    { pattern: /^nombre\s*=\s*["'][^"']+["']\s*print\s*\(\s*nombre\s*\)/s, message: "Asignaste un nombre fijo. En este nivel debes pedirlo con `input`." },
+                    { pattern: /input/i, message: "Ya estás usando `input`, pero también debe aparecer un `print` para mostrar el saludo." }
+                ]
+            },
+            {
+                title: "NIVEL 5 – CONVERSIÓN",
+                mission: "Pide dos números al usuario, conviértelos para poder sumarlos y muestra el resultado.",
+                solution: /int\s*\(\s*input/,
+                output: "(Suma correcta)",
+                simulatedInputs: ["4", "6"],
+                options: [
+                    'a = int(input("Primer numero: "))\nb = int(input("Segundo numero: "))\nprint(a + b)',
+                    'a = input("Primer numero: ")\nb = input("Segundo numero: ")\nprint(a + b)',
+                    'print(int(4) + int(2))'
+                ],
+                feedback: [
+                    { pattern: /input[\s\S]*print\s*\(\s*a\s*\+\s*b\s*\)/s, message: "Pediste los datos, pero faltó convertirlos con `int` antes de sumarlos." },
+                    { pattern: /print\s*\(\s*int\s*\(\s*\d+\s*\)\s*\+\s*int\s*\(\s*\d+\s*\)\s*\)/, message: "Convertiste números fijos. El reto pide pedir dos valores al usuario con `input`." }
+                ]
+            },
+            {
+                title: "NIVEL 6 – FUNCIONES",
+                mission: "Define la función saludar() y ejecútala.",
+                solution: /def saludar\s*\(.*\):.*saludar\s*\(\)/s,
+                output: "Hola, soy un robot",
+                options: [
+                    'def saludar():\n    print("Hola, soy un robot")\n\nsaludar()',
+                    'function saludar() {\n    print("Hola, soy un robot")\n}',
+                    'print("Hola, soy un robot")'
+                ],
+                feedback: [
+                    { pattern: /function\s+saludar/i, message: "La sintaxis `function` no es de Python. Debes definir la función con `def`." },
+                    { pattern: /^print\s*\(\s*["']Hola, soy un robot["']\s*\)\s*$/s, message: "Mostraste el mensaje, pero faltó definir la función `saludar()` y luego llamarla." }
+                ]
+            }
+        ];
+
+        const badges = [
+            { minPoints: 60, name: "Robot Legendario" },
+            { minPoints: 46, name: "Programador Preciso" },
+            { minPoints: 32, name: "Explorador de Python" },
+            { minPoints: -999, name: "Aprendiz Persistente" }
+        ];
+
+        function startGame() {
+            studentName = document.getElementById('student-name').value;
+            if(!studentName) return alert("Por favor ingresa tu nombre");
+            
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            startTime = new Date();
+            timesPerLevel = [];
+            levelScores = [];
+            levelStatuses = [];
+            correctAnswers = 0;
+            wrongAnswers = 0;
+            points = 0;
+            currentLevel = 0;
+            loadLevel();
+        }
+
+        function loadLevel() {
+            const level = levels[currentLevel];
+            levelStartTime = new Date();
+            document.getElementById('level-title').innerText = level.title;
+            document.getElementById('mission-text').innerText = level.mission;
+            document.getElementById('editor').value = "";
+            document.getElementById('console-out').innerText = ">>>";
+            document.getElementById('console-out').style.color = "white";
+            document.getElementById('continue-btn').style.display = "none";
+            document.getElementById('console-input-row').style.display = "none";
+            document.getElementById('console-input').value = "";
+            pendingInputSession = null;
+            renderHelpOptions(shuffleArray([...level.options]));
+            
+            // Animación robot
+            document.getElementById('robot-icon').style.marginLeft = (currentLevel * 15) + "%";
+            document.getElementById('energy-fill').style.width = ((currentLevel + 1) * 16) + "%";
+        }
+
+        function renderHelpOptions(options) {
+            const helpContainer = document.getElementById('help-options');
+            helpContainer.innerHTML = '';
+
+            options.forEach((option, index) => {
+                const optionCard = document.createElement('div');
+                optionCard.className = 'help-option';
+                optionCard.innerHTML = `
+                    <strong>Opción ${index + 1}</strong>
+                    <pre><code>${escapeHtml(option)}</code></pre>
+                `;
+                helpContainer.appendChild(optionCard);
+            });
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getLevelFeedback(level, code) {
+            const normalizedCode = code.trim();
+
+            if (!normalizedCode) {
+                return "No escribiste código en el editor. En el siguiente nivel intenta completar una solución antes de ejecutar.";
+            }
+
+            for (const item of level.feedback || []) {
+                if (item.pattern.test(normalizedCode)) {
+                    return item.message;
+                }
+            }
+
+            return "La solución no coincide con lo pedido. Revisa si usaste la instrucción correcta, el orden esperado o si faltó alguna parte del código.";
+        }
+
+        function getBadgeByPoints(score) {
+            return badges.find((badge) => score >= badge.minPoints).name;
+        }
+
+        function getBadgeRanges() {
+            return badges.map((badge, index) => {
+                const upperBound = index === 0 ? "60" : String(badges[index - 1].minPoints - 1);
+                const lowerBound = badge.minPoints <= 18 ? "18 o menos" : String(badge.minPoints);
+                const range = badge.minPoints <= 18 ? lowerBound : `${lowerBound} a ${upperBound}`;
+                return {
+                    name: badge.name,
+                    range
+                };
+            });
+        }
+
+        function buildSimulatedConsoleOutput(level, answers = []) {
+            if (!level.simulatedInputs || !level.simulatedInputs.length) {
+                return `>>> ${level.output}`;
+            }
+
+            if (currentLevel === 3) {
+                const nameValue = answers[0] || "";
+                return `>>> nombre = input("¿Cómo te llamas? ")\n¿Cómo te llamas? ${nameValue}\n>>> print("Hola", nombre)\nHola ${nameValue}`;
+            }
+
+            if (currentLevel === 4) {
+                const first = Number(answers[0] || 0);
+                const second = Number(answers[1] || 0);
+                return `>>> a = int(input("Primer numero: "))\nPrimer numero: ${answers[0] || ""}\n>>> b = int(input("Segundo numero: "))\nSegundo numero: ${answers[1] || ""}\n>>> print(a + b)\n${first + second}`;
+            }
+
+            return `>>> ${level.output}`;
+        }
+
+        function getInputPromptsForLevel() {
+            if (currentLevel === 3) return ['¿Cómo te llamas? '];
+            if (currentLevel === 4) return ['Primer numero: ', 'Segundo numero: '];
+            return [];
+        }
+
+        function startConsoleInputFlow(level, elapsedSeconds) {
+            pendingInputSession = {
+                level,
+                elapsedSeconds,
+                answers: [],
+                prompts: getInputPromptsForLevel()
+            };
+
+            const consoleOut = document.getElementById('console-out');
+            const inputRow = document.getElementById('console-input-row');
+            const inputField = document.getElementById('console-input');
+
+            consoleOut.innerText = `>>> Ejecutando ${level.title}\n${pendingInputSession.prompts[0]}`;
+            inputRow.style.display = "flex";
+            inputField.value = "";
+            inputField.focus();
+        }
+
+        function submitConsoleInput() {
+            if (!pendingInputSession) return;
+
+            const inputField = document.getElementById('console-input');
+            const consoleOut = document.getElementById('console-out');
+            const value = inputField.value;
+
+            pendingInputSession.answers.push(value);
+            inputField.value = "";
+
+            if (pendingInputSession.answers.length < pendingInputSession.prompts.length) {
+                const nextPrompt = pendingInputSession.prompts[pendingInputSession.answers.length];
+                consoleOut.innerText += `${value}\n${nextPrompt}`;
+                inputField.focus();
+                return;
+            }
+
+            consoleOut.style.color = "#76ff03";
+            consoleOut.innerText = buildSimulatedConsoleOutput(pendingInputSession.level, pendingInputSession.answers) + "\n\n¡Correcto! +10 puntos.";
+            document.getElementById('console-input-row').style.display = "none";
+            document.getElementById('continue-btn').style.display = "inline-flex";
+            pendingInputSession = null;
+        }
+
+        function handleConsoleInputKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitConsoleInput();
+            }
+        }
+
+        function getPerformanceScores() {
+            const fastestTime = timesPerLevel.length ? Math.min(...timesPerLevel) : 1;
+
+            return levelScores.map((score, index) => {
+                const time = timesPerLevel[index] || fastestTime;
+                const timeBonus = Math.max(0, Math.min(4, fastestTime / time * 4));
+                return Number((score + timeBonus).toFixed(1));
+            });
+        }
+
+        function goToNextLevel() {
+            currentLevel++;
+            if(currentLevel < levels.length) {
+                loadLevel();
+            } else {
+                finishGame();
+            }
+        }
+
+        function continueAfterError() {
+            document.getElementById('continue-btn').style.display = "none";
+            goToNextLevel();
+        }
+
+        function checkLevel() {
+            const code = document.getElementById('editor').value;
+            const level = levels[currentLevel];
+            const consoleOut = document.getElementById('console-out');
+            const continueBtn = document.getElementById('continue-btn');
+            const elapsedSeconds = Math.max(1, Math.floor((new Date() - levelStartTime) / 1000));
+
+            if(level.solution.test(code)) {
+                points += 10;
+                correctAnswers++;
+                levelScores.push(10);
+                levelStatuses.push("Acierto");
+                timesPerLevel.push(elapsedSeconds);
+                continueBtn.style.display = "none";
+
+                if (level.simulatedInputs && level.simulatedInputs.length) {
+                    consoleOut.style.color = "white";
+                    startConsoleInputFlow(level, elapsedSeconds);
+                } else {
+                    consoleOut.style.color = "#76ff03";
+                    consoleOut.innerText = buildSimulatedConsoleOutput(level) + "\n\n¡Correcto! +10 puntos.";
+                    continueBtn.style.display = "inline-flex";
+                }
+            } else {
+                consoleOut.style.color = "#ffca28";
+                consoleOut.innerText = ">>> Respuesta incorrecta.\n" + getLevelFeedback(level, code) + "\n\nPresiona continuar para pasar al siguiente nivel con -4 puntos.";
+                points -= 4;
+                wrongAnswers++;
+                levelScores.push(-4);
+                levelStatuses.push("Error");
+                timesPerLevel.push(elapsedSeconds);
+                continueBtn.style.display = "inline-flex";
+            }
+        }
+
+        function finishGame() {
+            endTime = new Date();
+            const totalSeconds = Math.floor((endTime - startTime) / 1000);
+            const averageSeconds = timesPerLevel.length ? Math.round(totalSeconds / timesPerLevel.length) : 0;
+            const badge = getBadgeByPoints(points);
+            
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('results-screen').style.display = 'block';
+            
+            document.getElementById('result-welcome').innerText = `Excelente trabajo, ${studentName}. Has completado todos los desafíos de Python.`;
+            document.getElementById('stat-points').innerText = points;
+            document.getElementById('stat-correct').innerText = correctAnswers;
+            document.getElementById('stat-errors').innerText = wrongAnswers;
+            document.getElementById('stat-time').innerText = totalSeconds + "s";
+            document.getElementById('stat-average-time').innerText = averageSeconds + "s";
+            document.getElementById('stat-badge').innerText = badge;
+            document.getElementById('stat-levels').innerText = `${levels.length}/${levels.length}`;
+
+            renderLevelBreakdown();
+            renderBadgeScale();
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+            const performanceScores = getPerformanceScores();
+            const minPerformance = Math.min(...performanceScores, 0);
+            const maxPerformance = Math.max(...performanceScores, 10);
+
+            if (performanceChartInstance) performanceChartInstance.destroy();
+            if (accuracyChartInstance) accuracyChartInstance.destroy();
+
+            performanceChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Nivel 1', 'Nivel 2', 'Nivel 3', 'Nivel 4', 'Nivel 5', 'Nivel 6'],
+                    datasets: [{
+                        label: 'Desempeno por Nivel',
+                        data: performanceScores,
+                        backgroundColor: levelScores.map((score) => score === 10 ? '#f38121' : '#ffd166'),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    return `Desempeno: ${performanceScores[index]} (${levelScores[index]} pts + tiempo ${timesPerLevel[index]} s)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: Math.floor(minPerformance) - 1,
+                            max: Math.ceil(maxPerformance) + 1,
+                            ticks: { stepSize: 2 }
+                        }
+                    }
+                }
+            });
+
+            accuracyChartInstance = new Chart(accuracyCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Aciertos', 'Errores'],
+                    datasets: [{
+                        data: [correctAnswers, wrongAnswers],
+                        backgroundColor: ['#f38121', '#ffd166'],
+                        borderColor: ['#ffffff', '#ffffff'],
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '62%'
+                }
+            });
+        }
+
+        function renderLevelBreakdown() {
+            const container = document.getElementById('level-breakdown');
+            container.innerHTML = '';
+
+            levels.forEach((level, index) => {
+                const row = document.createElement('div');
+                const isCorrect = levelStatuses[index] === 'Acierto';
+                row.className = 'level-row';
+                row.innerHTML = `
+                    <strong>Nivel ${index + 1}</strong>
+                    <span>${level.title.replace(`NIVEL ${index + 1} – `, '')}</span>
+                    <span class="status-pill ${isCorrect ? 'status-ok' : 'status-warn'}">${levelStatuses[index]}</span>
+                    <span>${timesPerLevel[index]} s</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderBadgeScale() {
+            const container = document.getElementById('badge-scale-list');
+            container.innerHTML = '';
+
+            getBadgeRanges().forEach((badgeInfo) => {
+                const item = document.createElement('div');
+                item.className = 'badge-scale-item';
+                item.innerHTML = `
+                    <strong>${badgeInfo.name}</strong>
+                    <span>${badgeInfo.range} pts</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const totalSeconds = Math.floor((endTime - startTime) / 1000);
+            const averageSeconds = timesPerLevel.length ? Math.round(totalSeconds / timesPerLevel.length) : 0;
+            const badge = getBadgeByPoints(points);
+            const performanceScores = getPerformanceScores();
+            const badgeRanges = getBadgeRanges();
+
+            // Estética UCSUR
+            doc.setFillColor(0, 45, 86); // Blue
+            doc.rect(0, 0, 297, 24, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text("REPORTE DE DESEMPENO - PYTHON QUEST", 14, 15);
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Alumno: ${studentName}`, 14, 34);
+            doc.text(`Curso: Legal Tech`, 100, 34);
+            doc.text(`Docente: Manuel Santa Cruz`, 170, 34);
+
+            doc.autoTable({
+                startY: 40,
+                head: [['Métrica', 'Resultado']],
+                body: [
+                    ['Puntos Totales', points + ' pts'],
+                    ['Aciertos', String(correctAnswers)],
+                    ['Errores', String(wrongAnswers)],
+                    ['Tiempo Total', totalSeconds + ' segundos'],
+                    ['Tiempo Promedio por Nivel', averageSeconds + ' segundos'],
+                    ['Niveles Completados', `${levels.length}/${levels.length}`],
+                    ['Insignia Obtenida', badge]
+                ],
+                headStyles: { fillStyle: [243, 129, 33] },
+                margin: { left: 14 },
+                tableWidth: 92,
+                styles: { fontSize: 8, cellPadding: 2.2 }
+            });
+
+            const performanceImage = document.getElementById('performanceChart').toDataURL('image/png', 1.0);
+            const accuracyImage = document.getElementById('accuracyChart').toDataURL('image/png', 1.0);
+            const summaryEndY = doc.lastAutoTable.finalY;
+
+            doc.setFontSize(11);
+            doc.text("Graficos del Desempeno", 116, 40);
+            doc.addImage(performanceImage, 'PNG', 116, 45, 92, 55);
+            doc.addImage(accuracyImage, 'PNG', 214, 45, 66, 55);
+
+            doc.autoTable({
+                startY: summaryEndY + 8,
+                head: [['Insignia', 'Rango de Puntaje']],
+                body: badgeRanges.map((item) => [item.name, `${item.range} pts`]),
+                headStyles: { fillStyle: [0, 45, 86] },
+                margin: { left: 14 },
+                tableWidth: 92,
+                styles: { fontSize: 8, cellPadding: 2.2 }
+            });
+
+            doc.autoTable({
+                startY: 108,
+                head: [['Nivel', 'Estado', 'Desempeno', 'Puntos', 'Tiempo']],
+                body: timesPerLevel.map((time, index) => [
+                    `Nivel ${index + 1}`,
+                    levelStatuses[index],
+                    String(performanceScores[index]),
+                    String(levelScores[index]),
+                    `${time} s`
+                ]),
+                headStyles: { fillStyle: [243, 129, 33] },
+                margin: { left: 116, right: 14 },
+                tableWidth: 164,
+                styles: { fontSize: 8, cellPadding: 2.2 }
+            });
+
+            const detailEndY = doc.lastAutoTable.finalY;
+            doc.setFontSize(8);
+            doc.setTextColor(70, 70, 70);
+            doc.text(
+                "Nota: el factor de desempeno combina el puntaje del nivel con la rapidez de resolucion. " +
+                "Se calcula sumando los puntos obtenidos en ese nivel y un bono por tiempo; " +
+                "a menor tiempo, mayor bono.",
+                116,
+                Math.min(detailEndY + 8, 205),
+                { maxWidth: 164 }
+            );
+
+            doc.save(`Reporte_Python_${studentName.replace(/\s/g, '_')}.pdf`);
+        }
+    </script>
+</body>
+</html>
