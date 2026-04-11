@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador EIA - Científica del Sur</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --azul-oscuro: #002855;
+            --naranja: #ff8200;
+            --blanco: #ffffff;
+            --verde: #2ecc71;
+            --rojo: #e74c3c;
+            --pasto: #27ae60;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+        body {
+            background-color: var(--azul-oscuro);
+            color: var(--blanco);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- IDENTIDAD VISUAL --- */
+        .u-header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 2px solid var(--naranja);
+            flex-shrink: 0;
+        }
+        .logo-main { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; }
+        .logo-accent { color: var(--naranja); }
+        .logo-sub { font-size: 0.8rem; color: var(--naranja); font-weight: bold; margin-top: -5px; letter-spacing: 2px; }
+
+        /* --- CONTENEDORES DE PANTALLA --- */
+        #main-wrapper { flex-grow: 1; position: relative; display: flex; flex-direction: column; min-height: 0; }
+
+        .screen { 
+            display: none; 
+            width: 100%; 
+            height: 100%; 
+            padding: 30px; 
+            overflow-y: auto;
+        }
+
+        .screen.active { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        #screen-report {
+            align-items: center;
+            justify-content: flex-start;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 48px;
+        }
+        #screen-report.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        /* --- PANTALLA DE INICIO (CENTRADÍSIMA Y GRANDE) --- */
+        .btn-start {
+            width: 90%;
+            max-width: 450px;
+            padding: 20px;
+            font-size: 1.5rem;
+            background: var(--naranja);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .btn-start:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+        #screen-start h1 { font-size: 3rem; margin-bottom: 20px; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+        #screen-start input { 
+            width: 90%; max-width: 450px; padding: 18px; border-radius: 10px; border: none; 
+            font-size: 1.2rem; margin-bottom: 20px; text-align: center;
+        }
+        #screen-start footer { margin-top: 40px; font-size: 0.9rem; opacity: 0.8; max-width: 600px; text-align: center; line-height: 1.5; }
+
+        /* --- EL MUNDO DEL JUEGO (CAMINO) --- */
+        #game-view {
+            flex-grow: 1;
+            background: linear-gradient(#4facfe 0%, #00f2fe 60%, var(--pasto) 60%);
+            position: relative;
+            overflow: hidden;
+            display: none;
+            border-bottom: 5px solid #1e8449;
+        }
+
+        .road {
+            position: absolute;
+            bottom: 0; width: 100%; height: 100px;
+            background: #555;
+            display: flex; align-items: center;
+        }
+        .road-line { width: 100%; height: 2px; border-bottom: 4px dashed white; opacity: 0.5; }
+
+        #character {
+            position: absolute;
+            bottom: 130px;
+            left: 50px;
+            width: 116px;
+            height: 154px;
+            z-index: 130;
+            transition: left 0.8s ease, transform 0.3s ease;
+        }
+        .avatar {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 10px 14px rgba(0,0,0,0.28));
+        }
+        .avatar::before {
+            content: "";
+            position: absolute;
+            left: 26px;
+            bottom: 2px;
+            width: 62px;
+            height: 12px;
+            background: rgba(0,0,0,0.16);
+            border-radius: 999px;
+            filter: blur(2px);
+        }
+        .avatar-helmet {
+            position: absolute;
+            top: 12px;
+            left: 34px;
+            width: 44px;
+            height: 24px;
+            background: linear-gradient(180deg, #ffd05c 0%, #ffb11c 100%);
+            border: 3px solid #17324d;
+            border-bottom: none;
+            border-radius: 26px 26px 10px 10px;
+            z-index: 3;
+        }
+        .avatar-helmet::after {
+            content: "";
+            position: absolute;
+            left: -6px;
+            bottom: -6px;
+            width: 50px;
+            height: 8px;
+            background: #ffb11c;
+            border: 3px solid #17324d;
+            border-radius: 999px;
+        }
+        .avatar-head {
+            position: absolute;
+            top: 28px;
+            left: 39px;
+            width: 34px;
+            height: 34px;
+            background: #ffd7b5;
+            border: 3px solid #17324d;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        .avatar-face {
+            position: absolute;
+            top: 42px;
+            left: 48px;
+            width: 16px;
+            height: 10px;
+            border-bottom: 3px solid #17324d;
+            border-radius: 0 0 12px 12px;
+            z-index: 3;
+        }
+        .avatar-body {
+            position: absolute;
+            top: 68px;
+            left: 33px;
+            width: 46px;
+            height: 52px;
+            background: linear-gradient(180deg, #ff9f38 0%, #ff8200 100%);
+            border: 3px solid #17324d;
+            border-radius: 16px 16px 18px 18px;
+            z-index: 2;
+        }
+        .avatar-body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 16px;
+            width: 8px;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+        }
+        .avatar-body::after {
+            content: "";
+            position: absolute;
+            top: 14px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.9);
+        }
+        .avatar-arm,
+        .avatar-leg {
+            position: absolute;
+            background: linear-gradient(180deg, #25486b 0%, #17324d 100%);
+            border-radius: 999px;
+            transform-origin: top center;
+            transition: transform 0.25s ease;
+            z-index: 2;
+        }
+        .avatar-arm.left {
+            top: 74px;
+            left: 24px;
+            width: 9px;
+            height: 44px;
+            transform: rotate(28deg);
+        }
+        .avatar-arm.right {
+            top: 74px;
+            left: 83px;
+            width: 9px;
+            height: 44px;
+            transform: rotate(-28deg);
+        }
+        .avatar-leg.left {
+            top: 117px;
+            left: 45px;
+            width: 11px;
+            height: 36px;
+            transform: rotate(12deg);
+        }
+        .avatar-leg.right {
+            top: 117px;
+            left: 61px;
+            width: 11px;
+            height: 36px;
+            transform: rotate(-12deg);
+        }
+        .avatar-shoe {
+            position: absolute;
+            width: 18px;
+            height: 8px;
+            background: #17324d;
+            border-radius: 999px;
+            z-index: 2;
+        }
+        .avatar-shoe.left {
+            top: 145px;
+            left: 37px;
+        }
+        .avatar-shoe.right {
+            top: 145px;
+            left: 63px;
+        }
+        #character.running .avatar-arm.left,
+        #character.running .avatar-leg.right {
+            transform: rotate(42deg);
+        }
+        #character.running .avatar-arm.right,
+        #character.running .avatar-leg.left {
+            transform: rotate(-42deg);
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 28px;
+            bottom: 100px;
+            width: 190px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 5;
+        }
+        .finish-sign {
+            background: var(--naranja);
+            color: white;
+            padding: 12px 16px;
+            font-weight: 900;
+            font-size: 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            border: 4px solid white;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+        }
+        .finish-post {
+            width: 12px;
+            height: 84px;
+            background: #8b5a2b;
+            border-radius: 999px;
+        }
+        .pdf-button { margin-top: 30px; }
+
+        .forest-layer {
+            position: absolute; bottom: 40%; width: 100%;
+            display: flex; justify-content: space-around; font-size: 3rem; opacity: 1; transition: opacity 0.5s;
+        }
+
+        /* --- PANEL DE PREGUNTAS --- */
+        #question-panel {
+            background: white; color: var(--azul-oscuro); padding: 20px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5); z-index: 100;
+        }
+        #q-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; text-align: center; }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .opt-btn { 
+            background: var(--azul-oscuro); color: white; border: none; padding: 15px; 
+            border-radius: 8px; font-size: 1rem; cursor: pointer; text-align: left;
+        }
+
+        /* --- REPORTE PDF --- */
+        #report-area {
+            background: white; color: #333; width: 650px; padding: 40px; margin: 0 auto;
+            border: 1px solid #ddd; border-top: 10px solid var(--azul-oscuro);
+        }
+        .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .res-box { background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 5px solid var(--naranja); }
+        .chart-row { display: flex; justify-content: space-between; margin-top: 20px; height: 250px; }
+        .chart-box { width: 48%; }
+        .steps-report {
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 2px solid #e9ecef;
+        }
+        .steps-report h3 {
+            color: var(--azul-oscuro);
+            margin-bottom: 14px;
+        }
+        .steps-list {
+            display: grid;
+            gap: 10px;
+        }
+        .step-item {
+            background: #f9f9f9;
+            border-left: 5px solid #cfd8dc;
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        .step-item.error {
+            border-left-color: var(--rojo);
+            background: #fff3f2;
+        }
+        .step-item.ok {
+            border-left-color: var(--verde);
+        }
+        .step-item strong {
+            color: var(--azul-oscuro);
+        }
+        .step-meta {
+            margin-top: 6px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+        #report-area.pdf-compact {
+            width: 560px;
+            padding: 24px;
+            border-top-width: 8px;
+            font-size: 0.9rem;
+        }
+        #report-area.pdf-compact h2 {
+            font-size: 1.35rem;
+            padding-bottom: 8px;
+        }
+        #report-area.pdf-compact .res-grid {
+            gap: 12px;
+            margin: 14px 0;
+        }
+        #report-area.pdf-compact .res-box {
+            padding: 10px 12px;
+            font-size: 0.9rem;
+        }
+        #report-area.pdf-compact #out-status {
+            margin: 14px 0 !important;
+            font-size: 1rem;
+        }
+        #report-area.pdf-compact .chart-row {
+            display: grid;
+            grid-template-columns: 168px 1fr;
+            align-items: start;
+            gap: 10px;
+            margin-top: 10px;
+            height: auto;
+        }
+        #report-area.pdf-compact .chart-box {
+            width: 100%;
+            background: #fafafa;
+            border: 1px solid #eceff1;
+            border-radius: 10px;
+            padding: 8px;
+        }
+        #report-area.pdf-compact .chart-box:first-child {
+            height: 168px;
+        }
+        #report-area.pdf-compact .chart-box:last-child {
+            height: 168px;
+        }
+        #report-area.pdf-compact .chart-box canvas {
+            display: block;
+            margin: 0 auto;
+        }
+        #report-area.pdf-compact .chart-box:first-child canvas {
+            width: 150px !important;
+            height: 150px !important;
+        }
+        #report-area.pdf-compact .chart-box:last-child canvas {
+            width: 100% !important;
+            height: 150px !important;
+        }
+        #report-area.pdf-compact .steps-report {
+            margin-top: 12px;
+            padding-top: 12px;
+        }
+        #report-area.pdf-compact .steps-report h3 {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        #report-area.pdf-compact .steps-list {
+            gap: 5px;
+        }
+        #report-area.pdf-compact .step-item {
+            padding: 6px 8px;
+            border-left-width: 4px;
+        }
+        #report-area.pdf-compact .step-item strong {
+            font-size: 0.8rem;
+            line-height: 1.2;
+            display: block;
+        }
+        #report-area.pdf-compact .step-meta {
+            margin-top: 3px;
+            font-size: 0.72rem;
+            line-height: 1.18;
+        }
+
+        @media (min-width: 768px) { .options-grid { grid-template-columns: 1fr 1fr 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="u-header">
+        <div class="logo-main">UNIVERSIDAD CIENTÍFIC<span class="logo-accent">A</span></div>
+        <div class="logo-sub">DEL SUR</div>
+    </div>
+
+    <div id="main-wrapper">
+        <div id="screen-start" class="screen active">
+            <h1>Proceso de una EIA</h1>
+            <input type="text" id="student-name" placeholder="Escribe tu nombre aquí">
+            <button class="btn-start" onclick="initSimulation()">COMENCEMOS</button>
+            <footer>
+                Simulador creado por el profesor Manuel Santa Cruz para el curso de Evaluación y Fiscalización Ambiental en la Universidad Científica del Sur
+            </footer>
+        </div>
+
+        <div id="game-view">
+            <div id="forest" class="forest-layer">🌲 🌳 🌲 🌳 🌲 🌳 🌲 🌳</div>
+            <div class="road"><div class="road-line"></div></div>
+            <div id="character" aria-label="Personaje avanzando">
+                <div class="avatar">
+                    <div class="avatar-helmet"></div>
+                    <div class="avatar-head"></div>
+                    <div class="avatar-face"></div>
+                    <div class="avatar-body"></div>
+                    <div class="avatar-arm left"></div>
+                    <div class="avatar-arm right"></div>
+                    <div class="avatar-leg left"></div>
+                    <div class="avatar-leg right"></div>
+                    <div class="avatar-shoe left"></div>
+                    <div class="avatar-shoe right"></div>
+                </div>
+            </div>
+            <div class="finish-line">
+                <div class="finish-sign">Certificación ambiental</div>
+                <div class="finish-post"></div>
+            </div>
+
+            <div id="question-panel" style="position: absolute; bottom: 0; width: 100%;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 10px;">
+                    <span id="step-count" style="font-weight: 800; color: var(--naranja);">PASO 1</span>
+                    <span id="player-label" style="font-weight: bold; color: #666;"></span>
+                </div>
+                <p id="q-text">Cargando...</p>
+                <div id="opts-container" class="options-grid"></div>
+            </div>
+        </div>
+
+        <div id="screen-report" class="screen">
+            <div id="report-area">
+                <h2 style="color: var(--azul-oscuro); text-align: center; border-bottom: 2px solid var(--naranja); padding-bottom: 10px;">REPORTE DE RESULTADOS</h2>
+                <div class="res-grid">
+                    <div class="res-box"><strong>Alumno:</strong> <span id="out-name"></span></div>
+                    <div class="res-box"><strong>Tiempo:</strong> <span id="out-time"></span> segundos</div>
+                    <div class="res-box"><strong>Aciertos:</strong> <span id="out-score"></span>/10</div>
+                    <div class="res-box"><strong>Profesor:</strong> Manuel Santa Cruz</div>
+                </div>
+                <h3 id="out-status" style="text-align: center; margin: 20px 0;"></h3>
+                <div class="chart-row">
+                    <div class="chart-box"><canvas id="c1"></canvas></div>
+                    <div class="chart-box"><canvas id="c2"></canvas></div>
+                </div>
+                <div class="steps-report">
+                    <h3>Secuencia correcta del proceso</h3>
+                    <div id="steps-report-list" class="steps-list"></div>
+                </div>
+            </div>
+            <button class="btn-start pdf-button" onclick="downloadPDF()">DESCARGAR RESULTADOS EN PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const steps = [
+            { a: "Presentación de solicitud con EIA-d", b: "Subsana errores", c: "Publica en 'El Peruano'", r: 0 },
+            { a: "Presenta la solicitud", b: "La autoridad revisa la admisibilidad", c: "La autoridad emite observaciones", r: 1 },
+            { a: "subsanación de observaciones de admisibilidad", b: "Emisión de resolución final", c: "Impugnación", r: 0 },
+            { a: "Evaluación del resumen ejecutivo para su conformidad y difusión", b: "Revisión admisibilidad", c: "Opinantes", r: 0 },
+            { a: "Solicitud de opiniones técnicas", b: "Pronunciamiento opinantes", c: "Impugnación", r: 0 },
+            { a: "Evaluación técnica de fondo sobre la viabilidad ambiental", b: "Revisión admisibilidad", c: "Subsanación", r: 0 },
+            { a: "Emisión de observaciones al EIA", b: "Impugnación", c: "Subsanación admisibilidad", r: 0 },
+            { a: "Subsanación del titular a las observaciones al EIA", b: "Impugnación", c: "Certificación", r: 0 },
+            { a: "Pronunciamiento de Entidades Opinantes", b: "Impugnación", c: "Evaluación Ejecutivo", r: 0 },
+            { a: "Emisión de Resolución Final", b: "Impugnación", c: "Nuevo procedimiento", r: 0 }
+        ];
+
+        let current = 0, score = 0, errors = 0, startTime, stepStart, history = [];
+        let pieChart;
+        let barChart;
+
+        function getCorrectStepText(step) {
+            return [step.a, step.b, step.c][step.r];
+        }
+
+        function updateCharacterPosition() {
+            const character = document.getElementById('character');
+            const gameView = document.getElementById('game-view');
+            const finishLine = document.querySelector('.finish-line');
+            const startX = 50;
+            const gameWidth = gameView.clientWidth;
+            const finishTarget = gameWidth - finishLine.offsetWidth - 80;
+            const progress = current / steps.length;
+            const walk = startX + ((finishTarget - startX) * progress);
+
+            character.style.left = `${Math.max(startX, walk)}px`;
+        }
+
+        function initSimulation() {
+            const name = document.getElementById('student-name').value;
+            if(!name) return alert("Por favor, ingresa tu nombre");
+            
+            document.getElementById('screen-start').classList.remove('active');
+            document.getElementById('game-view').style.display = 'block';
+            document.getElementById('player-label').innerText = name;
+            current = 0;
+            score = 0;
+            errors = 0;
+            history = [];
+            document.getElementById('character').classList.remove('running');
+            document.getElementById('forest').style.opacity = 1;
+            updateCharacterPosition();
+            
+            startTime = Date.now();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            stepStart = Date.now();
+            const data = steps[current];
+            document.getElementById('step-count').innerText = `PASO ${current + 1} DE 10`;
+            document.getElementById('q-text').innerText = "¿Cuál es la siguiente etapa del proceso ambiental?";
+            
+            const options = [
+                {t: data.a, id: 0}, {t: data.b, id: 1}, {t: data.c, id: 2}
+            ].sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('opts-container');
+            container.innerHTML = '';
+            
+            options.forEach(opt => {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.innerText = opt.t;
+                b.onclick = () => processAnswer(opt.id === data.r, opt.t);
+                container.appendChild(b);
+            });
+        }
+
+        function processAnswer(isCorrect, selectedText) {
+            const duration = (Date.now() - stepStart) / 1000;
+            const stepData = steps[current];
+            history.push({
+                correct: isCorrect,
+                time: duration,
+                step: current + 1,
+                selected: selectedText,
+                correctAnswer: getCorrectStepText(stepData)
+            });
+
+            if(isCorrect) score++;
+            else {
+                errors++;
+                document.getElementById('forest').style.opacity = 1 - (errors * 0.15);
+            }
+
+            current++;
+            updateCharacterPosition();
+            document.getElementById('character').classList.add('running');
+            document.getElementById('character').style.transform = 'scaleX(1.05)';
+
+            if(current < 10) {
+                setTimeout(() => {
+                    document.getElementById('character').classList.remove('running');
+                    document.getElementById('character').style.transform = 'scaleX(1)';
+                    loadQuestion();
+                }, 600);
+            } else {
+                setTimeout(showFinalReport, 1000);
+            }
+        }
+
+        window.addEventListener('resize', updateCharacterPosition);
+
+        function showFinalReport() {
+            document.getElementById('game-view').style.display = 'none';
+            document.getElementById('screen-report').classList.add('active');
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            document.getElementById('out-name').innerText = document.getElementById('student-name').value;
+            document.getElementById('out-time').innerText = totalTime;
+            document.getElementById('out-score').innerText = score;
+
+            const status = document.getElementById('out-status');
+            if(score === 10) {
+                status.innerText = "✅ ¡OBTUVISTE LA CERTIFICACIÓN AMBIENTAL!";
+                status.style.color = "var(--verde)";
+            } else {
+                status.innerText = "❌ EL PROCESO NO SE DESARROLLÓ CORRECTAMENTE";
+                status.style.color = "var(--rojo)";
+            }
+
+            renderStepsReport();
+            renderCharts();
+        }
+
+        function renderStepsReport() {
+            const container = document.getElementById('steps-report-list');
+            container.innerHTML = '';
+
+            history.forEach(item => {
+                const row = document.createElement('div');
+                row.className = `step-item ${item.correct ? 'ok' : 'error'}`;
+                row.innerHTML = `
+                    <strong>Paso ${item.step}: ${item.correctAnswer}</strong>
+                    <div class="step-meta">
+                        ${item.correct ? 'Respuesta del alumno: correcta' : `Respuesta del alumno: ${item.selected}<br>Estado: se equivocó en este paso`}
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderCharts() {
+            if (pieChart) pieChart.destroy();
+            if (barChart) barChart.destroy();
+            const isPdfCompact = document.getElementById('report-area').classList.contains('pdf-compact');
+
+            pieChart = new Chart(document.getElementById('c1'), {
+                type: 'pie',
+                data: {
+                    labels: ['Aciertos', 'Errores'],
+                    datasets: [{
+                        data: [score, errors],
+                        backgroundColor: ['#2ecc71', '#e74c3c'],
+                        borderWidth: 0,
+                        hoverBorderWidth: 0,
+                        spacing: 0
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    animation: false,
+                    layout: {
+                        padding: isPdfCompact ? 2 : 6
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#333',
+                                usePointStyle: true,
+                                boxWidth: isPdfCompact ? 8 : 10,
+                                padding: isPdfCompact ? 6 : 10,
+                                font: {
+                                    size: isPdfCompact ? 9 : 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            barChart = new Chart(document.getElementById('c2'), {
+                type: 'bar',
+                data: {
+                    labels: history.map((_, i) => `P${i+1}`),
+                    datasets: [{
+                        label: 'Segundos',
+                        data: history.map(h => h.time),
+                        backgroundColor: history.map(h => h.correct ? '#2ecc71' : '#e74c3c'),
+                        borderWidth: 0,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: true,
+                    aspectRatio: isPdfCompact ? 2.2 : 1.8,
+                    animation: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: {
+                                    size: isPdfCompact ? 9 : 11
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#333',
+                                font: {
+                                    size: isPdfCompact ? 8 : 10
+                                }
+                            },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#333',
+                                font: {
+                                    size: isPdfCompact ? 8 : 10
+                                }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.08)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('report-area');
+            element.classList.add('pdf-compact');
+
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    useCORS: true
+                });
+                const imgData = canvas.toDataURL('image/png');
+                
+                const pdf = new jsPDF('p', 'pt', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const imgProps = pdf.getImageProperties(imgData);
+                const widthRatio = (pageWidth - (margin * 2)) / imgProps.width;
+                const heightRatio = (pageHeight - (margin * 2)) / imgProps.height;
+                const ratio = Math.min(widthRatio, heightRatio);
+                const renderWidth = imgProps.width * ratio;
+                const renderHeight = imgProps.height * ratio;
+                const offsetX = (pageWidth - renderWidth) / 2;
+                const offsetY = (pageHeight - renderHeight) / 2;
+                
+                pdf.addImage(imgData, 'PNG', offsetX, offsetY, renderWidth, renderHeight);
+                pdf.save(`Resultado_EIA_${document.getElementById('student-name').value}.pdf`);
+            } finally {
+                element.classList.remove('pdf-compact');
+            }
+        }
+    </script>
+</body>
+</html>
