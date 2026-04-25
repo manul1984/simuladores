@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misión SINEFA: Control del Riesgo Ambiental</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-ucsur: #003366;
+            --naranja-ucsur: #f39200;
+            --verde-ambiental: #28a745;
+            --celeste-agua: #00adef;
+            --rojo-riesgo: #dc3545;
+            --gris-fondo: #f8f9fa;
+            --tinta: #12263a;
+            --panel: #ffffff;
+            --linea: #d9e3ec;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background:
+                linear-gradient(135deg, rgba(0,51,102,.92), rgba(0,173,239,.45)),
+                radial-gradient(circle at 15% 20%, rgba(243,146,0,.2), transparent 28%),
+                #0b2239;
+            color: var(--tinta);
+        }
+
+        /* Estilos de Impresión para el PDF */
+        @media print {
+            .no-print { display: none !important; }
+            #screen-final { display: block !important; }
+            body { background: white; }
+            #game-container { margin: 0; max-width: none; min-height: auto; box-shadow: none; border-radius: 0; overflow: visible; }
+            header { padding: 10px 16px; break-inside: avoid; page-break-inside: avoid; }
+            .university-logo .logo-top { font-size: 9px; }
+            .university-logo .logo-main { font-size: 30px; }
+            .university-logo .logo-main::after { width: 9px; height: 5px; }
+            .university-logo .logo-bottom { font-size: 10px; margin-top: 4px; }
+            .report-card { border: 1px solid #ccc; box-shadow: none; }
+        }
+
+        #game-container { max-width: 1080px; margin: 20px auto; background: #eef4f8; min-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 18px 50px rgba(0,0,0,0.25); border-radius: 8px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,.22); }
+
+        /* HEADER IDENTIDAD */
+        header { background: #0b3f7d; color: white; padding: 12px 24px; border-bottom: 5px solid var(--naranja-ucsur); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+        .university-logo { display: inline-grid; justify-items: start; line-height: 1; text-align: left; font-family: 'Montserrat', Arial, sans-serif; color: white; max-width: 100%; }
+        .university-logo .logo-top { font-size: 13px; font-weight: 400; letter-spacing: .24em; margin-left: 2px; margin-bottom: 3px; }
+        .university-logo .logo-main { position: relative; display: block; font-size: 42px; font-weight: 800; letter-spacing: .01em; line-height: .9; white-space: nowrap; }
+        .university-logo .logo-main::after { content: ""; position: absolute; right: 1px; bottom: 1px; width: 13px; height: 7px; background: var(--naranja-ucsur); transform: skewX(20deg); }
+        .university-logo .logo-bottom { justify-self: end; color: var(--naranja-ucsur); font-size: 14px; font-weight: 400; letter-spacing: .24em; margin-top: 5px; }
+
+        .operation-tag { color: #d9ecff; font-family: 'Montserrat'; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; text-align: right; }
+
+        /* HUD */
+        #hud { display: none; background: #102b46; padding: 12px 22px; border-bottom: 1px solid rgba(255,255,255,.14); justify-content: space-between; align-items: center; gap: 12px; font-weight: 600; font-size: 14px; flex-wrap: wrap; color: white; }
+        #mod-name { color: white; font-family: 'Montserrat'; font-weight: 800; max-width: 360px; }
+        .mission-progress { flex: 1 1 180px; min-width: 160px; max-width: 280px; }
+        .mission-progress-track { height: 8px; background: rgba(255,255,255,.16); border-radius: 999px; overflow: hidden; }
+        #mission-progress-fill { height: 100%; width: 0%; background: var(--naranja-ucsur); transition: width .3s ease; }
+        #q-counter { color: #c8dcf0; font-size: 12px; margin-top: 4px; text-align: right; }
+        .stat-group { display: flex; align-items: center; gap: 10px; min-width: 170px; padding: 9px 12px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+        .stat-icon { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-family: 'Montserrat'; font-weight: 800; font-size: 15px; flex: 0 0 34px; }
+        .stat-icon.comp { background: var(--verde-ambiental); }
+        .stat-icon.risk { background: var(--rojo-riesgo); }
+        .stat-icon.time { background: var(--naranja-ucsur); }
+        .stat-content { display: grid; gap: 5px; flex: 1; min-width: 0; }
+        .stat-label { color: #c8dcf0; font-size: 11px; letter-spacing: .4px; text-transform: uppercase; }
+        .progress-bar-bg { width: 100%; height: 10px; background: rgba(255,255,255,.18); border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.3s; }
+
+        /* PANTALLAS */
+        .screen { display: none; padding: 40px; flex-grow: 1; animation: fadeIn 0.5s ease; }
+        .active { display: flex; flex-direction: column; }
+        .intro-screen { justify-content: center; }
+        .intro-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, .95fr); gap: 28px; align-items: center; }
+        .mission-brief { color: white; background: linear-gradient(160deg, #123b60, #0f2a46); padding: 32px; border-radius: 8px; min-height: 430px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 16px 36px rgba(0, 51, 102, .22); position: relative; overflow: hidden; }
+        .mission-brief::before { content: ""; position: absolute; inset: 18px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; pointer-events: none; }
+        .mission-kicker { color: var(--naranja-ucsur); font-family: 'Montserrat'; font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; margin-bottom: 12px; }
+        .mission-title { font-family: 'Montserrat'; font-size: 2.5rem; line-height: 1.05; margin-bottom: 16px; }
+        .mission-copy { color: #d8e7f5; line-height: 1.7; max-width: 520px; }
+        .mission-map { display: grid; gap: 10px; margin-top: 28px; }
+        .mission-map-item { display: flex; align-items: center; gap: 10px; color: #d8e7f5; font-size: 14px; }
+        .mission-node { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: white; font-family: 'Montserrat'; font-size: 12px; font-weight: 800; }
+        .intro-card { width: min(100%, 430px); justify-self: center; display: flex; flex-direction: column; align-items: center; padding: 32px 28px; background: var(--panel); border: 1px solid var(--linea); border-radius: 8px; box-shadow: 0 14px 30px rgba(0, 51, 102, 0.14); text-align: center; }
+        .agent-card-title { font-family: 'Montserrat'; color: var(--azul-ucsur); font-size: 1.4rem; margin-bottom: 8px; }
+        .agent-card-copy { color: #536879; line-height: 1.6; margin-bottom: 22px; }
+        .name-field { width: min(100%, 320px); padding: 15px; margin-bottom: 20px; border: 1px solid #bdcad7; border-radius: 4px; font-size: 16px; text-align: center; background: white; }
+        .name-field:focus { outline: 3px solid rgba(0, 173, 239, 0.2); border-color: var(--celeste-agua); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* BOTONES */
+        .btn { padding: 15px 24px; border: none; border-radius: 4px; cursor: pointer; font-family: 'Montserrat'; font-weight: 700; text-transform: uppercase; transition: 0.3s; margin: 10px 5px; }
+        .btn-primary { background: var(--azul-ucsur); color: white; }
+        .btn-primary:hover { background: #002244; }
+        .btn-accent { background: var(--naranja-ucsur); color: white; }
+        .btn-accent:hover { background: #d48000; }
+
+        /* JUEGO */
+        .game-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 22px; align-items: start; }
+        .mission-console { background: #102b46; color: white; border-radius: 8px; padding: 20px; box-shadow: 0 12px 28px rgba(0, 51, 102, .18); }
+        .console-label { color: var(--naranja-ucsur); font-family: 'Montserrat'; font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 12px; }
+        .stage-track { display: grid; gap: 12px; margin-top: 18px; }
+        .stage-step { display: flex; align-items: center; gap: 10px; color: #b9cee3; font-size: 13px; }
+        .stage-dot { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); font-family: 'Montserrat'; font-size: 12px; font-weight: 800; }
+        .stage-step.done .stage-dot { background: var(--verde-ambiental); border-color: var(--verde-ambiental); color: white; }
+        .stage-step.active { color: white; }
+        .stage-step.active .stage-dot { background: var(--naranja-ucsur); border-color: var(--naranja-ucsur); color: white; }
+        .game-card { background: white; border: 1px solid var(--linea); border-radius: 8px; box-shadow: 0 12px 28px rgba(0, 51, 102, .12); overflow: hidden; }
+        .scenario-box { background: linear-gradient(90deg, #eaf6fb, #f8fbfd); border-left: 6px solid var(--celeste-agua); padding: 22px 24px; color: #31485d; line-height: 1.7; }
+        .question-panel { padding: 26px; }
+        .question-label { display: inline-block; color: var(--naranja-ucsur); font-family: 'Montserrat'; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 12px; }
+        .question-text { font-family: 'Montserrat'; font-size: 1.35rem; line-height: 1.35; margin-bottom: 22px; color: var(--azul-ucsur); }
+        .options-grid { display: grid; gap: 12px; }
+        .option-card { display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 12px; background: #f9fbfd; border: 2px solid #dbe4ed; padding: 14px; border-radius: 8px; cursor: pointer; transition: 0.2s; min-height: 66px; }
+        .option-card:hover { border-color: var(--naranja-ucsur); background: #fff7ed; transform: translateY(-1px); box-shadow: 0 8px 16px rgba(0, 51, 102, .1); }
+        .option-code { width: 36px; height: 36px; border-radius: 50%; background: var(--azul-ucsur); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: 'Montserrat'; font-weight: 800; }
+        .option-text { line-height: 1.45; }
+
+        /* RESULTADOS */
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .chart-container { height: 250px; position: relative; }
+        .badge { display: inline-block; font-family: 'Montserrat'; font-size: 1.5rem; font-weight: 800; color: var(--naranja-ucsur); margin: 20px 0; padding: 10px 16px; border: 1px solid #f5cf96; border-radius: 8px; background: #fff8ee; }
+        .final-panel { text-align: center; background: white; border: 1px solid var(--linea); border-radius: 8px; padding: 30px; box-shadow: 0 12px 28px rgba(0, 51, 102, .12); }
+
+        /* MODAL FEEDBACK */
+        #feedback-overlay { position: absolute; inset: 0; background: rgba(7, 24, 40, 0.86); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .feedback-card { background: white; padding: 30px; border-radius: 8px; max-width: 520px; text-align: center; border-top: 6px solid var(--naranja-ucsur); box-shadow: 0 20px 50px rgba(0,0,0,.28); }
+
+        @media (max-width: 720px) {
+            .screen { padding: 26px 18px; }
+            header { padding: 12px 16px; }
+            .university-logo .logo-top { font-size: 10px; }
+            .university-logo .logo-main { font-size: 31px; }
+            .university-logo .logo-main::after { width: 10px; height: 5px; }
+            .university-logo .logo-bottom { font-size: 11px; margin-top: 4px; }
+            #hud { align-items: stretch; }
+            #mod-name, .stat-group { width: 100%; max-width: none; }
+            .intro-layout, .game-layout { grid-template-columns: 1fr; }
+            .mission-brief { min-height: auto; }
+            .mission-title { font-size: 2rem; }
+            .mission-console { order: 2; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div class="university-logo" aria-label="Universidad Científica del Sur">
+            <span class="logo-top">UNIVERSIDAD</span>
+            <span class="logo-main">CIENTÍFICA</span>
+            <span class="logo-bottom">DEL SUR</span>
+        </div>
+        <div class="operation-tag">Simulador SINEFA</div>
+    </header>
+
+    <div id="hud" class="no-print">
+        <div id="mod-name">Módulo 1</div>
+        <div class="mission-progress">
+            <div class="mission-progress-track"><div id="mission-progress-fill"></div></div>
+            <div id="q-counter">Pregunta 1 de 15</div>
+        </div>
+        <div class="stat-group">
+            <span class="stat-icon comp">C</span>
+            <div class="stat-content">
+                <span class="stat-label">Cumplimiento</span>
+                <div class="progress-bar-bg"><div id="bar-comp" class="progress-fill" style="background: var(--verde-ambiental); width: 0%"></div></div>
+            </div>
+        </div>
+        <div class="stat-group">
+            <span class="stat-icon risk">R</span>
+            <div class="stat-content">
+                <span class="stat-label">Riesgo ambiental</span>
+                <div class="progress-bar-bg"><div id="bar-risk" class="progress-fill" style="background: var(--rojo-riesgo); width: 0%"></div></div>
+            </div>
+        </div>
+        <div class="stat-group">
+            <span class="stat-icon time">T</span>
+            <div class="stat-content">
+                <span class="stat-label">Tiempo</span>
+                <span id="game-timer">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-intro" class="screen active no-print intro-screen">
+        <div class="intro-layout">
+            <section class="mission-brief">
+                <div>
+                    <div class="mission-kicker">Operación Bahía Limpia</div>
+                    <h1 class="mission-title">Control del Riesgo Ambiental</h1>
+                    <p class="mission-copy">Asume el rol de analista SINEFA. Cada decisión desbloquea una fase de intervención y mueve los indicadores de cumplimiento, riesgo ambiental y tiempo de respuesta.</p>
+                </div>
+                <div class="mission-map" aria-label="Fases de la misión">
+                    <div class="mission-map-item"><span class="mission-node">1</span> Alerta en la bahía</div>
+                    <div class="mission-map-item"><span class="mission-node">2</span> Coordinación SINEFA</div>
+                    <div class="mission-map-item"><span class="mission-node">3</span> Competencias del OEFA</div>
+                    <div class="mission-map-item"><span class="mission-node">4</span> Operativo de fiscalización</div>
+                    <div class="mission-map-item"><span class="mission-node">5</span> Rectoría del sistema</div>
+                </div>
+            </section>
+
+            <section class="intro-card">
+                <h2 class="agent-card-title">Registro de agente</h2>
+                <p class="agent-card-copy">Ingresa tu nombre para iniciar la misión y generar tu reporte final.</p>
+                <input type="text" id="student-name" class="name-field" placeholder="Nombre del Estudiante">
+                <div>
+                    <button class="btn btn-accent" onclick="initGame()">Iniciar Misión</button>
+                    <button class="btn btn-primary" onclick="alert('Misión: completa 15 decisiones distribuidas en 5 módulos. Los aciertos aumentan cumplimiento y reducen riesgo; los errores elevan el riesgo ambiental. Al final obtendrás tu reporte.')">Ver Briefing</button>
+                </div>
+                
+                <footer style="margin-top: 28px; font-size: 12px; color: #777;">
+                    Creado por Manuel Santa Cruz para el curso de Evaluación y Fiscalización Ambiental
+                </footer>
+            </section>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen no-print">
+        <div class="game-layout">
+            <aside class="mission-console">
+                <div class="console-label">Mapa de misión</div>
+                <p style="color:#d8e7f5; line-height:1.6;">Avanza por cada fase y conserva el riesgo bajo control.</p>
+                <div id="stage-track" class="stage-track"></div>
+            </aside>
+
+            <section class="game-card">
+                <div id="scenario-desc" class="scenario-box"></div>
+                <div id="question-area" class="question-panel">
+                    <span class="question-label">Decisión operativa</span>
+                    <h2 id="q-text" class="question-text"></h2>
+                    <div id="options-list" class="options-grid"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="screen-final" class="screen">
+        <div class="final-panel">
+            <h1 id="final-msg" style="color: var(--azul-ucsur);">Debriefing de la Misión</h1>
+            <p id="student-display" style="font-weight: bold; font-size: 1.2rem;"></p>
+            <div id="final-badge" class="badge"></div>
+            
+            <div class="results-grid">
+                <div class="chart-container">
+                    <canvas id="resultsChart"></canvas>
+                </div>
+                <div id="stats-text" style="text-align: left; padding: 20px; background: #f9f9f9; border-radius: 8px; line-height: 2;">
+                    </div>
+            </div>
+
+            <div class="no-print" style="margin-top: 30px;">
+                <button class="btn btn-accent" onclick="location.reload()">Reintentar Operación</button>
+                <button class="btn btn-primary" onclick="window.print()">Descargar Reporte en PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-overlay" class="no-print">
+        <div class="feedback-card">
+            <h2 id="fb-title"></h2>
+            <p id="fb-msg" style="margin: 20px 0; color: #555;"></p>
+            <button class="btn btn-primary" onclick="nextQuestion()">Continuar Misión</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const gameContent = [
+        {
+            modulo: "MÓDULO 1: Alerta en la bahía",
+            intro: "Se reporta un derrame en el litoral peruano. Varias autoridades deben actuar. Antes de intervenir, debes identificar qué es un sistema y cuál es la finalidad del SINEFA.",
+            questions: [
+                { q: "¿Qué es un sistema en la organización del Estado?", a: ["Un conjunto de entidades con autonomía presupuestal", "Un conjunto de principios, normas, procedimientos e instrumentos que organizan actividades públicas", "Una estructura jerárquica entre ministerios", "Un mecanismo de control político del Congreso"], correct: 1, ref: "Los sistemas organizan actividades públicas mediante principios, normas, procedimientos e instrumentos." },
+                { q: "¿Cuál es la finalidad principal del SINEFA?", a: ["Promover inversiones privadas en el sector ambiental", "Supervisar únicamente a las empresas contaminantes", "Asegurar el cumplimiento de la legislación ambiental", "Reemplazar a los gobiernos regionales en fiscalización"], correct: 2, ref: "El SINEFA busca asegurar el cumplimiento de la legislación ambiental por personas naturales o jurídicas." },
+                { q: "¿Qué caracteriza a un sistema funcional?", a: ["Se aplica solo en el nivel nacional", "Busca asegurar políticas públicas que requieren participación de varias entidades", "Es exclusivo del Poder Ejecutivo", "Solo regula temas administrativos internos"], correct: 1, ref: "Los sistemas funcionales aseguran políticas públicas que requieren actuación coordinada de varias entidades." }
+            ]
+        },
+        {
+            modulo: "MÓDULO 2: Centro de coordinación SINEFA",
+            intro: "El derrame exige coordinación institucional. Debes reconocer qué entidades forman parte del SINEFA y qué rol cumple cada una.",
+            questions: [
+                { q: "¿Quiénes integran el SINEFA?", a: ["MINAM, OEFA y EFA", "Congreso, Poder Judicial y MINAM", "OEFA, SUNAT y PCM", "Municipalidades, universidades y empresas privadas"], correct: 0, ref: "El SINEFA está integrado por el MINAM, el OEFA y las Entidades de Fiscalización Ambiental." },
+                { q: "¿Qué rol cumple el OEFA dentro del SINEFA?", a: ["Es una entidad consultiva sin potestades propias", "Es el ente rector del SINEFA", "Es una autoridad judicial ambiental", "Es el órgano encargado de aprobar estudios de impacto ambiental"], correct: 1, ref: "El OEFA es el ente rector del SINEFA y dirige el sistema de fiscalización ambiental." },
+                { q: "¿Qué son las EFA?", a: ["Empresas fiscalizadas ambientalmente", "Entidades con facultades expresas para desarrollar funciones de fiscalización ambiental", "Órganos internos del OEFA", "Consultoras ambientales inscritas ante el Estado"], correct: 1, ref: "Las EFA son entidades públicas nacionales, regionales o locales con competencias de fiscalización ambiental." }
+            ]
+        },
+        {
+            modulo: "MÓDULO 3: Mapa de competencias directas del OEFA",
+            intro: "No toda intervención ambiental corresponde a la misma autoridad. Como analista, debes identificar cuándo el OEFA actúa como fiscalizador directo.",
+            questions: [
+                { q: "¿Cuál es el criterio central para determinar si el OEFA puede fiscalizar directamente una actividad?", a: ["Que la actividad pertenezca exclusivamente al sector minería", "Que la competencia en fiscalización ambiental le haya sido transferida", "Que el administrado sea una empresa privada grande", "Que la actividad se realice en Lima Metropolitana"], correct: 1, ref: "La competencia directa del OEFA se activa cuando la fiscalización ambiental le ha sido atribuida o transferida." },
+                { q: "¿Cuál de los siguientes casos puede corresponder a fiscalización directa del OEFA?", a: ["Evaluar el currículo de una universidad", "Supervisar las obligaciones ambientales fiscalizables de una gran minera", "Supervisar las obligaciones ambientales fiscalizables de una minera artesanal", "Supervisar las obligaciones ambientales fiscalizables de una carretera"], correct: 1, ref: "El OEFA es competente para fiscalizar directamente actividades de gran y mediana minería." },
+                { q: "¿Cuál de los siguientes ejemplos se relaciona mejor con una competencia directa ambiental del OEFA?", a: ["Supervisar emisiones de una planta industrial", "Resolver una controversia laboral en una fábrica", "Aprobar una licencia de funcionamiento municipal", "Fiscalizar el contenido de una clase universitaria"], correct: 0, ref: "Las emisiones de una planta industrial constituyen un componente ambiental fiscalizable." }
+            ]
+        },
+        {
+            modulo: "MÓDULO 4: Operativo de fiscalización",
+            intro: "El OEFA ha llegado al área afectada. Debes decidir qué función corresponde a cada actuación.",
+            questions: [
+                { q: "¿Qué comprende la función evaluadora del OEFA?", a: ["Vigilancia, monitoreo y acciones para asegurar el cumplimiento de normas ambientales", "Aprobación de estudios de impacto ambiental", "Emisión de sentencias ambientales", "Diseño de políticas educativas ambientales"], correct: 0, ref: "La función evaluadora comprende acciones de vigilancia y monitoreo ambiental." },
+                { q: "¿Qué caracteriza a la función supervisora directa del OEFA?", a: ["La aprobación de normas legales con rango de ley", "El seguimiento y verificación del cumplimiento de obligaciones ambientales fiscalizables", "La elección de autoridades regionales", "La aprobación de presupuestos municipales"], correct: 1, ref: "La supervisión directa verifica el cumplimiento de obligaciones ambientales fiscalizables." },
+                { q: "¿Qué permite la potestad sancionadora del OEFA?", a: ["Investigar infracciones ambientales e imponer sanciones", "Aprobar estudios ambientales preventivos", "Crear gobiernos regionales ambientales", "Resolver conflictos civiles entre empresas"], correct: 0, ref: "La potestad sancionadora permite investigar infracciones e imponer sanciones." }
+            ]
+        },
+        {
+            modulo: "MÓDULO 5: Rectoría del SINEFA",
+            intro: "El OEFA no solo fiscaliza directamente. También dirige el funcionamiento del sistema nacional.",
+            questions: [
+                { q: "¿Qué incluye la función normativa del OEFA?", a: ["Dictar normas que regulen la fiscalización ambiental en el marco del SINEFA", "Aprobar estudios de impacto ambiental detallados", "Ejecutar obras de remediación ambiental", "Resolver procesos penales ambientales"], correct: 0, ref: "La función normativa permite dictar normas obligatorias en fiscalización ambiental." },
+                { q: "¿Qué implica la función supervisora de EFA?", a: ["Sustituir a las EFA en todas sus funciones", "Realizar seguimiento y verificación del desempeño de las EFA", "Aprobar licencias de funcionamiento municipales", "Financiar proyectos ambientales regionales"], correct: 1, ref: "El OEFA supervisa el desempeño de las EFA sin sustituirlas." },
+                { q: "¿Qué consecuencia puede generar el incumplimiento de funciones por parte de una EFA?", a: ["Posible responsabilidad funcional comunicada al órgano competente del Sistema Nacional de Control", "Disolución automática de la entidad", "Transferencia inmediata de todas sus competencias al OEFA", "Suspensión de sus autoridades por decisión directa del administrado"], correct: 0, ref: "El incumplimiento genera responsabilidad funcional comunicada al sistema de control." }
+            ]
+        }
+    ];
+
+    let currentMod = 0, currentQue = 0, score = 0, errors = 0, risk = 10, compliance = 0, timer = 0, interval;
+
+    function initGame() {
+        const name = document.getElementById('student-name').value;
+        if(!name) return alert("Por favor, ingresa tu nombre.");
+        document.getElementById('screen-intro').classList.remove('active');
+        document.getElementById('hud').style.display = 'flex';
+        document.getElementById('screen-game').classList.add('active');
+        startTimer();
+        renderQuestion();
+    }
+
+    function startTimer() {
+        interval = setInterval(() => {
+            timer++;
+            let m = Math.floor(timer/60).toString().padStart(2,'0');
+            let s = (timer%60).toString().padStart(2,'0');
+            document.getElementById('game-timer').innerText = `${m}:${s}`;
+        }, 1000);
+    }
+
+    function renderQuestion() {
+        const mod = gameContent[currentMod];
+        const qData = mod.questions[currentQue];
+        const totalQuestions = gameContent.reduce((sum, item) => sum + item.questions.length, 0);
+        const questionNumber = gameContent.slice(0, currentMod).reduce((sum, item) => sum + item.questions.length, 0) + currentQue + 1;
+        document.getElementById('mod-name').innerText = mod.modulo;
+        document.getElementById('q-counter').innerText = `Pregunta ${questionNumber} de ${totalQuestions}`;
+        document.getElementById('mission-progress-fill').style.width = `${((questionNumber - 1) / totalQuestions) * 100}%`;
+        document.getElementById('scenario-desc').innerText = mod.intro;
+        document.getElementById('q-text').innerText = qData.q;
+        renderStageTrack();
+        
+        const list = document.getElementById('options-list');
+        list.innerHTML = "";
+        qData.a.forEach((opt, i) => {
+            const card = document.createElement('div');
+            card.className = "option-card";
+            card.innerHTML = `<span class="option-code">${String.fromCharCode(65 + i)}</span><span class="option-text">${opt}</span>`;
+            card.onclick = () => checkAnswer(i);
+            list.appendChild(card);
+        });
+    }
+
+    function renderStageTrack() {
+        const track = document.getElementById('stage-track');
+        track.innerHTML = "";
+        gameContent.forEach((mod, index) => {
+            const step = document.createElement('div');
+            step.className = "stage-step";
+            if(index < currentMod) step.classList.add('done');
+            if(index === currentMod) step.classList.add('active');
+            step.innerHTML = `<span class="stage-dot">${index + 1}</span><span>${mod.modulo.replace(/^MÓDULO \d: /, '')}</span>`;
+            track.appendChild(step);
+        });
+    }
+
+    function checkAnswer(idx) {
+        const qData = gameContent[currentMod].questions[currentQue];
+        const overlay = document.getElementById('feedback-overlay');
+        const title = document.getElementById('fb-title');
+        
+        if(idx === qData.correct) {
+            score++; compliance += 6.66; risk -= 2;
+            title.innerText = "Decisión acertada";
+            title.style.color = "var(--verde-ambiental)";
+        } else {
+            errors++; risk += 10; compliance -= 2;
+            title.innerText = "Riesgo incrementado";
+            title.style.color = "var(--rojo-riesgo)";
+        }
+        
+        if(risk < 0) risk = 0; if(risk > 100) risk = 100;
+        if(compliance < 0) compliance = 0; if(compliance > 100) compliance = 100;
+        
+        document.getElementById('fb-msg').innerText = qData.ref;
+        overlay.style.display = 'flex';
+        updateHUD();
+    }
+
+    function updateHUD() {
+        document.getElementById('bar-comp').style.width = compliance + "%";
+        document.getElementById('bar-risk').style.width = risk + "%";
+        const totalQuestions = gameContent.reduce((sum, item) => sum + item.questions.length, 0);
+        const answered = gameContent.slice(0, currentMod).reduce((sum, item) => sum + item.questions.length, 0) + currentQue + 1;
+        document.getElementById('mission-progress-fill').style.width = `${(answered / totalQuestions) * 100}%`;
+    }
+
+    function nextQuestion() {
+        document.getElementById('feedback-overlay').style.display = 'none';
+        currentQue++;
+        if(currentQue >= gameContent[currentMod].questions.length) {
+            currentQue = 0;
+            currentMod++;
+        }
+
+        if(currentMod >= gameContent.length) endGame();
+        else renderQuestion();
+    }
+
+    function endGame() {
+        clearInterval(interval);
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('screen-final').classList.add('active');
+        
+        const name = document.getElementById('student-name').value;
+        document.getElementById('student-display').innerText = `Estudiante: ${name}`;
+        
+        let rank = "";
+        let finalScore = (score / 15) * 100;
+        if(finalScore >= 76) rank = "Super Especialista SINEFA";
+        else if(finalScore >= 51) rank = "Analista Ambiental Competente";
+        else rank = "Fiscalizador en Entrenamiento";
+
+        document.getElementById('final-badge').innerText = rank;
+        document.getElementById('stats-text').innerHTML = `
+            <strong>Aciertos:</strong> ${score} de 15<br>
+            <strong>Errores:</strong> ${errors}<br>
+            <strong>Cumplimiento Final:</strong> ${compliance.toFixed(1)}%<br>
+            <strong>Riesgo Remanente:</strong> ${risk}%<br>
+            <strong>Tiempo Total:</strong> ${document.getElementById('game-timer').innerText}
+        `;
+
+        renderChart(score, errors);
+    }
+
+    function renderChart(s, e) {
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Aciertos', 'Errores'],
+                datasets: [{
+                    data: [s, e],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    }
+</script>
+
+</body>
+</html>
