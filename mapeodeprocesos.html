@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diseñando Procesos | Simulador BPMN</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --ink: #213547;
+            --ink-soft: #547289;
+            --panel: #ffffffd9;
+            --panel-strong: #ffffff;
+            --sky: #e8f4ff;
+            --mint: #e4f8ef;
+            --sand: #fff5da;
+            --rose: #ffe7ec;
+            --peach: #ffe7d6;
+            --gold: #ffbf47;
+            --accent: #ff7a59;
+            --accent-dark: #d95c3f;
+            --line: rgba(33, 53, 71, 0.14);
+            --shadow: 0 20px 60px rgba(21, 41, 53, 0.18);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, #eff8ff 0%, #fefaf1 100%);
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        .screen {
+            min-height: 100vh;
+            display: none;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn-main,
+        .btn-secondary,
+        .opcion-btn {
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-main:hover,
+        .btn-secondary:hover,
+        .opcion-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-main {
+            padding: 18px 34px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), #ff9a62);
+            color: white;
+            box-shadow: 0 18px 35px rgba(255, 122, 89, 0.32);
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-secondary {
+            padding: 12px 20px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .opcion-btn {
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 18px;
+            text-align: left;
+            background: white;
+            border: 1px solid rgba(84, 114, 137, 0.18);
+            box-shadow: 0 10px 24px rgba(33, 53, 71, 0.08);
+            color: var(--ink);
+            line-height: 1.45;
+            font-size: 0.97rem;
+        }
+
+        .opcion-btn:hover {
+            background: linear-gradient(180deg, #fff, #eef8ff);
+            box-shadow: 0 16px 32px rgba(33, 53, 71, 0.12);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: var(--ink-soft);
+            font-size: 0.86rem;
+            backdrop-filter: blur(10px);
+        }
+
+        #portada {
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.55), transparent 30%),
+                radial-gradient(circle at 80% 24%, rgba(255, 222, 173, 0.35), transparent 28%),
+                linear-gradient(135deg, #0f2536 0%, #173950 45%, #215673 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .bpmn-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .portada-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.2;
+            animation: driftDiagram 18s ease-in-out infinite alternate;
+        }
+
+        .portada-svg .pulse-node {
+            animation: pulseNode 5s ease-in-out infinite;
+        }
+
+        .portada-svg .pulse-line {
+            stroke-dasharray: 16 12;
+            animation: pulseLine 7s linear infinite;
+        }
+
+        .hero-card {
+            position: relative;
+            z-index: 1;
+            max-width: 920px;
+            padding: 36px 32px 132px;
+            background: linear-gradient(180deg, rgba(6, 20, 31, 0.86), rgba(9, 28, 40, 0.6));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 32px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+        }
+
+        .hero-card h1 {
+            margin: 18px 0 0;
+            font-size: clamp(2.8rem, 7vw, 5.2rem);
+            line-height: 0.95;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .hero-btn-wrap {
+            position: absolute;
+            left: 50%;
+            bottom: 44px;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        #login {
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(circle at top left, rgba(255, 122, 89, 0.14), transparent 25%),
+                radial-gradient(circle at bottom right, rgba(114, 194, 255, 0.18), transparent 30%),
+                linear-gradient(180deg, #f7fbff 0%, #eef6ff 100%);
+        }
+
+        .login-box {
+            width: min(520px, 100%);
+            padding: 42px 34px;
+            border-radius: 28px;
+            background: var(--panel);
+            backdrop-filter: blur(14px);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin: 12px 0;
+            font-size: 2rem;
+        }
+
+        .login-box p {
+            margin: 0 0 20px;
+            color: var(--ink-soft);
+            line-height: 1.55;
+        }
+
+        .input-main {
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(84, 114, 137, 0.22);
+            font-size: 1rem;
+            margin-bottom: 16px;
+            outline: none;
+        }
+
+        .input-main:focus {
+            border-color: rgba(255, 122, 89, 0.5);
+            box-shadow: 0 0 0 4px rgba(255, 122, 89, 0.12);
+        }
+
+        #simulador {
+            display: none;
+            height: 100vh;
+            grid-template-columns: minmax(360px, 440px) 1fr;
+            background: linear-gradient(180deg, #f5fbff 0%, #fff8ef 100%);
+        }
+
+        #panel-preguntas {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 26px;
+            background: rgba(255, 255, 255, 0.84);
+            border-right: 1px solid rgba(33, 53, 71, 0.08);
+            overflow-y: auto;
+        }
+
+        .panel-card {
+            background: var(--panel-strong);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 16px 40px rgba(33, 53, 71, 0.08);
+            border: 1px solid rgba(84, 114, 137, 0.08);
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .meta-box {
+            padding: 14px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #fff, #f6fbff);
+            border: 1px solid rgba(84, 114, 137, 0.12);
+        }
+
+        .meta-box strong,
+        .meta-box span {
+            display: block;
+        }
+
+        .meta-box span {
+            font-size: 0.84rem;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
+        }
+
+        .meta-box strong {
+            font-size: 1.15rem;
+        }
+
+        .pregunta-titulo {
+            margin: 0 0 16px;
+            font-size: 1.24rem;
+            line-height: 1.4;
+        }
+
+        #lista-opciones {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .historial-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .historial-item {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #fffdf7, #fff6e8);
+            border: 1px solid rgba(255, 191, 71, 0.25);
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        #panel-visualizacion {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 26px;
+            overflow: auto;
+        }
+
+        .diagram-shell {
+            min-height: calc(100vh - 52px);
+            background: rgba(255, 255, 255, 0.68);
+            border-radius: 28px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .diagram-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .diagram-head h3 {
+            margin: 0;
+        }
+
+        #mermaid-wrap {
+            flex: 1;
+            overflow: auto;
+            padding: 8px;
+            border-radius: 22px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.85), rgba(248, 252, 255, 0.95)),
+                linear-gradient(90deg, rgba(33,53,71,0.03) 1px, transparent 1px),
+                linear-gradient(rgba(33,53,71,0.03) 1px, transparent 1px);
+            background-size: auto, 36px 36px, 36px 36px;
+            border: 1px solid rgba(84, 114, 137, 0.09);
+        }
+
+        #mermaid-graph {
+            min-width: 1400px;
+        }
+
+        #mermaid-graph svg {
+            display: block;
+        }
+
+        .blank-canvas {
+            color: var(--ink-soft);
+            font-size: 1rem;
+            text-align: center;
+            line-height: 1.6;
+            padding: 80px 24px;
+        }
+
+        #ranking {
+            align-items: center;
+            justify-content: center;
+            padding: 36px 20px;
+            background:
+                radial-gradient(circle at top center, rgba(255, 191, 71, 0.25), transparent 28%),
+                linear-gradient(180deg, #173042 0%, #0f2230 100%);
+            color: white;
+        }
+
+        .ranking-wrap {
+            width: min(1100px, 100%);
+            display: grid;
+            gap: 24px;
+        }
+
+        .ranking-head {
+            text-align: center;
+        }
+
+        .ranking-head h1 {
+            margin: 0 0 10px;
+            font-size: clamp(2rem, 5vw, 3.4rem);
+        }
+
+        .ranking-head p {
+            margin: 0 auto;
+            max-width: 760px;
+            color: rgba(255,255,255,0.82);
+            line-height: 1.6;
+        }
+
+        .podium {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            align-items: end;
+        }
+
+        .podium-card {
+            padding: 18px;
+            border-radius: 24px 24px 12px 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06));
+            border: 1px solid rgba(255,255,255,0.18);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 210px;
+            animation: riseUp 0.8s ease both;
+        }
+
+        .podium-card.place-1 { min-height: 290px; background: linear-gradient(180deg, rgba(255, 191, 71, 0.38), rgba(255,255,255,0.08)); }
+        .podium-card.place-2 { min-height: 245px; }
+        .podium-card.place-3 { min-height: 225px; }
+
+        .podium-medal {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .podium-card strong,
+        .podium-card span {
+            display: block;
+        }
+
+        .podium-card span {
+            color: rgba(255,255,255,0.8);
+            margin-top: 6px;
+        }
+
+        .table-card {
+            padding: 20px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            backdrop-filter: blur(12px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        th, td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+        }
+
+        th {
+            color: rgba(255,255,255,0.8);
+            font-weight: 600;
+        }
+
+        .medal {
+            font-weight: 700;
+            color: #ffd96b;
+        }
+
+        .actions-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        @keyframes floatChip {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-14px); }
+        }
+
+        @keyframes riseUp {
+            from { transform: translateY(28px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes driftDiagram {
+            0% { transform: scale(1) translateY(0px); }
+            100% { transform: scale(1.03) translateY(-10px); }
+        }
+
+        @keyframes pulseNode {
+            0%, 100% { opacity: 0.75; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes pulseLine {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -56; }
+        }
+
+        @media (max-width: 980px) {
+            body {
+                overflow: auto;
+            }
+
+            #simulador {
+                grid-template-columns: 1fr;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            #panel-preguntas {
+                border-right: none;
+                border-bottom: 1px solid rgba(33, 53, 71, 0.08);
+            }
+
+            .diagram-shell {
+                min-height: 70vh;
+            }
+
+            .podium {
+                grid-template-columns: 1fr;
+            }
+
+            #mermaid-graph {
+                min-width: 1100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section id="portada" class="screen active">
+        <div class="bpmn-bg" aria-hidden="true">
+            <svg class="portada-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <marker id="arrowGlow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+                        <path d="M0,0 L12,6 L0,12 z" fill="#ffd26a"></path>
+                    </marker>
+                </defs>
+                <rect class="pulse-node" x="120" y="180" width="220" height="76" rx="18" fill="#ffd9e2"></rect>
+                <text x="230" y="225" text-anchor="middle" fill="#173950" font-size="22" font-weight="700">Recibir reclamo</text>
+                <line class="pulse-line" x1="340" y1="218" x2="500" y2="218" stroke="#ffd26a" stroke-width="7" marker-end="url(#arrowGlow)"></line>
+                <polygon class="pulse-node" points="592,168 676,218 592,268 508,218" fill="#d6efff"></polygon>
+                <text x="592" y="210" text-anchor="middle" fill="#173950" font-size="20" font-weight="700">¿Procede?</text>
+                <line class="pulse-line" x1="676" y1="218" x2="856" y2="218" stroke="#ffd26a" stroke-width="7" marker-end="url(#arrowGlow)"></line>
+                <rect class="pulse-node" x="872" y="180" width="250" height="76" rx="18" fill="#dff8ea"></rect>
+                <text x="997" y="225" text-anchor="middle" fill="#173950" font-size="22" font-weight="700">Emitir informe</text>
+                <line class="pulse-line" x1="997" y1="256" x2="997" y2="390" stroke="#ffd26a" stroke-width="7" marker-end="url(#arrowGlow)"></line>
+                <rect class="pulse-node" x="870" y="410" width="254" height="76" rx="18" fill="#fff0bf"></rect>
+                <text x="997" y="455" text-anchor="middle" fill="#173950" font-size="22" font-weight="700">Notificar usuario</text>
+                <line class="pulse-line" x1="870" y1="448" x2="716" y2="448" stroke="#ffd26a" stroke-width="7" marker-end="url(#arrowGlow)"></line>
+                <polygon class="pulse-node" points="606,398 690,448 606,498 522,448" fill="#ffe5d4"></polygon>
+                <text x="606" y="442" text-anchor="middle" fill="#173950" font-size="20" font-weight="700">¿Aprueba?</text>
+                <line class="pulse-line" x1="522" y1="448" x2="348" y2="448" stroke="#ffd26a" stroke-width="7" marker-end="url(#arrowGlow)"></line>
+                <rect class="pulse-node" x="110" y="410" width="234" height="76" rx="18" fill="#e6e4ff"></rect>
+                <text x="227" y="455" text-anchor="middle" fill="#173950" font-size="22" font-weight="700">Archivar caso</text>
+            </svg>
+        </div>
+        <div class="hero-card">
+            <span class="chip">Simulador de procesos legales y gerenciales en BPMN</span>
+            <h1>Diseñando Procesos</h1>
+        </div>
+        <div class="hero-btn-wrap">
+            <button class="btn-main" onclick="mostrarLogin()">Comienza a levantar y diseñar un proceso</button>
+        </div>
+    </section>
+
+    <section id="login" class="screen">
+        <div class="login-box">
+            <span class="chip">Acceso del alumno</span>
+            <h2>Identificación</h2>
+            <p>Escribe tu nombre para iniciar la simulación, construir tu proceso y competir por el mayor nivel de complejidad alcanzado.</p>
+            <input class="input-main" type="text" id="nombreAlumno" placeholder="Escribe tu nombre aquí..." maxlength="50">
+            <button class="btn-main" style="position: static;" onclick="iniciarSimulador()">INGRESEMOS</button>
+        </div>
+    </section>
+
+    <section id="simulador">
+        <aside id="panel-preguntas">
+            <div class="panel-card">
+                <div id="bienvenida-usuario" class="chip">Bienvenida/o</div>
+                <h2 style="margin: 14px 0 8px;">Atención de reclamos en un banco</h2>
+                <p style="margin: 0; color: var(--ink-soft); line-height: 1.55;">
+                    El plazo total de referencia es de <strong>15 días</strong>. Cada decisión del alumno construye
+                    un proceso distinto y suma complejidad según la longitud real del flujo alcanzado.
+                </p>
+            </div>
+
+            <div class="panel-card meta-grid">
+                <div class="meta-box">
+                    <span>Pasos BPMN creados</span>
+                    <strong id="meta-complejidad">0</strong>
+                </div>
+                <div class="meta-box">
+                    <span>Tiempo transcurrido</span>
+                    <strong id="meta-tiempo">0.0 s</strong>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <span class="chip">Pregunta activa</span>
+                <h3 id="pregunta-actual" class="pregunta-titulo"></h3>
+                <div id="lista-opciones"></div>
+            </div>
+
+            <div id="panel-cierre" class="panel-card hidden">
+                <span class="chip">Cierre del proceso</span>
+                <h3 style="margin: 14px 0 8px;">El proceso ha culminado</h3>
+                <p id="mensaje-cierre" style="margin: 0 0 16px; color: var(--ink-soft); line-height: 1.55;">
+                    El mapa BPMN ya muestra el cierre de esta ruta. Cuando quieras, puedes revisar el ranking.
+                </p>
+                <button class="btn-secondary" style="margin-bottom: 12px;" onclick="descargarProcesoPDF()">Descargar proceso en PDF</button>
+                <button class="btn-main" style="position: static;" onclick="irAlRanking()">Ver cuadro de honor</button>
+            </div>
+
+            <div class="panel-card">
+                <span class="chip">Ruta construida</span>
+                <div id="historial-ruta" class="historial-lista"></div>
+            </div>
+
+            <button class="btn-secondary" onclick="reiniciarSimulador()">Reiniciar simulador</button>
+        </aside>
+
+        <main id="panel-visualizacion">
+            <div class="diagram-shell">
+                <div class="diagram-head">
+                    <div>
+                        <h3>Mapa de proceso BPMN</h3>
+                        <span style="color: var(--ink-soft);">Crecimiento horizontal con carriles para Asistente administrativo, Especialista y Jefe.</span>
+                    </div>
+                    <span class="chip">Vista dinámica en pastel</span>
+                </div>
+                <div id="mermaid-wrap">
+                    <div id="mermaid-graph" class="mermaid"></div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <section id="ranking" class="screen">
+        <div class="ranking-wrap">
+            <div class="ranking-head">
+                <h1>Cuadro de Honor</h1>
+                <p>
+                    El ranking se ordena por mayor complejidad del proceso construido y, en caso de empate,
+                    por menor tiempo de resolución. El podio muestra a los tres primeros y la tabla de honor a los cinco mejores.
+                </p>
+            </div>
+
+            <div id="podium" class="podium"></div>
+
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Puesto</th>
+                            <th>Alumno</th>
+                            <th>Complejidad</th>
+                            <th>Tiempo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-ranking"></tbody>
+                </table>
+            </div>
+
+            <div class="actions-row">
+                <button class="btn-main" onclick="reiniciarSimulador()">Volver a simular</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: "base",
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: "linear"
+            },
+            themeVariables: {
+                primaryColor: "#e8f4ff",
+                primaryTextColor: "#213547",
+                primaryBorderColor: "#7eb5d6",
+                lineColor: "#56738a",
+                secondaryColor: "#e4f8ef",
+                tertiaryColor: "#fff5da",
+                fontFamily: "Segoe UI"
+            }
+        });
+
+        const STORAGE_KEY = "simulador_procesos_bpmn_ranking_real_v1";
+
+        let nombreUsuario = "";
+        let tiempoInicio = 0;
+        let temporizador = null;
+        let currentQuestionId = "inicio";
+        let stepNumber = 0;
+        let nodeIndex = 0;
+        let currentNodeId = "inicioNode";
+        let historyLabels = [];
+        let diagramNodes = [];
+        let gatewayNodeIds = [];
+        let edges = [];
+        let bookmarks = {};
+        let usedEdgeKeys = new Set();
+        let endCreated = false;
+        let rankingActual = [];
+        let diagramStarted = false;
+
+        function buildOption(texto, next, steps, links = [], autoEnd = true) {
+            return { texto, next, steps, links, autoEnd };
+        }
+
+        function createNodeStep(lane, label, shape = "activity", extra = {}) {
+            return { lane, label, shape, ...extra };
+        }
+
+        function createLink(fromBookmark, toBookmark, label = "") {
+            return { fromBookmark, toBookmark, label };
+        }
+
+        function reviewOptions(questionNextA, questionNextB, questionNextC) {
+            return [
+                buildOption(
+                    "De aprobarse el informe el jefe lo firma y lo manda a notificar al usuario; de no aprobarlo lo regresa al especialista para que levante observaciones en un plazo de un día.",
+                    questionNextA,
+                    [
+                        createNodeStep("jefe", "¿Aprueba el informe?", "gateway", { bookmark: "revision_actual" }),
+                        createNodeStep("jefe", "Firma informe y dispone notificación al usuario", "activity", {
+                            fromBookmark: "revision_actual",
+                            edgeLabel: "Aprueba",
+                            bookmark: "firma_actual",
+                            detached: true
+                        }),
+                        createNodeStep("especialista", "Levanta observaciones en 1 día", "activity", {
+                            fromBookmark: "revision_actual",
+                            edgeLabel: "Observa",
+                            bookmark: "subsanacion_actual"
+                        })
+                    ],
+                    [
+                        createLink("firma_actual", "end", "Fin")
+                    ],
+                    false
+                ),
+                buildOption(
+                    "De aprobarlo lo archiva; de no aprobarlo lo regresa para que se corrija por el especialista en un plazo de un día.",
+                    questionNextB,
+                    [
+                        createNodeStep("jefe", "¿Aprueba el informe?", "gateway", { bookmark: "revision_actual" }),
+                        createNodeStep("jefe", "Archiva el informe aprobado", "activity", {
+                            fromBookmark: "revision_actual",
+                            edgeLabel: "Aprueba",
+                            bookmark: "archivo_aprobado_actual",
+                            detached: true
+                        }),
+                        createNodeStep("especialista", "Corrige observaciones en 1 día", "activity", {
+                            fromBookmark: "revision_actual",
+                            edgeLabel: "Observa",
+                            bookmark: "subsanacion_actual"
+                        })
+                    ],
+                    [
+                        createLink("archivo_aprobado_actual", "end", "Fin")
+                    ]
+                ),
+                buildOption(
+                    "De aprobarlo o desaprobarlo el jefe archiva el informe y el caso, culminando el proceso.",
+                    questionNextC,
+                    [
+                        createNodeStep("jefe", "¿Aprueba el informe?", "gateway", { bookmark: "revision_actual" }),
+                        createNodeStep("jefe", "Archiva informe y caso", "activity", {
+                            fromBookmark: "revision_actual",
+                            edgeLabel: "Aprueba / Desaprueba",
+                            bookmark: "archivo_final_actual"
+                        })
+                    ],
+                    [
+                        createLink("archivo_final_actual", "end", "Fin")
+                    ],
+                    false
+                )
+            ];
+        }
+
+        const arbolDecision = {
+            inicio: {
+                pregunta: "¿Cómo se inicia el proceso?",
+                opciones: [
+                    buildOption("Documento remitido por la gerencia de usuarios.", "inicio_recepcion", [
+                        createNodeStep("entrada", "Documento remitido por la gerencia de usuarios")
+                    ]),
+                    buildOption("Reclamo del usuario.", "inicio_recepcion", [
+                        createNodeStep("entrada", "Reclamo del usuario")
+                    ]),
+                    buildOption("Informe remitido por agencia.", "inicio_recepcion", [
+                        createNodeStep("entrada", "Informe remitido por agencia")
+                    ])
+                ]
+            },
+            inicio_recepcion: {
+                pregunta: "Una vez recibido ¿qué acción se desarrolla?",
+                opciones: [
+                    buildOption("Registrar el documento.", "nivel1_registrar", [
+                        createNodeStep("asistente", "Registrar el documento")
+                    ]),
+                    buildOption("Emitir informe sobre el documento.", "nivel2_derivar_jefe", [
+                        createNodeStep("asistente", "Emitir informe sobre el documento")
+                    ]),
+                    buildOption("Archivar el documento.", "fin", [
+                        createNodeStep("asistente", "Archivar el documento")
+                    ])
+                ]
+            },
+            nivel1_registrar: {
+                pregunta: "Nivel 1. Para registrar el documento: ¿cuál es el siguiente paso?",
+                opciones: [
+                    buildOption("Asignar y derivar el caso al especialista.", "nivel2_especialista", [
+                        createNodeStep("asistente", "Asignar y derivar el caso al especialista")
+                    ]),
+                    buildOption("Derivarlo al jefe con informe.", "nivel2_derivar_jefe", [
+                        createNodeStep("jefe", "Recibe derivación del caso con informe")
+                    ]),
+                    buildOption("Archivar el documento culminando el proceso.", "fin", [
+                        createNodeStep("asistente", "Archivar el documento y culminar el proceso")
+                    ])
+                ]
+            },
+            nivel2_especialista: {
+                pregunta: "Nivel 2. Para asignar y derivar el caso al especialista: ¿Cómo continuamos?",
+                opciones: [
+                    buildOption("El especialista cuenta con 5 días para evaluar el caso y emitir proyecto de informe al jefe del área.", "nivel3_especialista_5d", [
+                        createNodeStep("especialista", "Evalúa el caso y proyecta informe en 5 días")
+                    ]),
+                    buildOption("El especialista emitirá informe sin plazo al jefe del área.", "nivel3_especialista_sin_plazo", [
+                        createNodeStep("especialista", "Emite informe al jefe sin plazo definido")
+                    ]),
+                    buildOption("El especialista archivará el caso y culminará el proceso.", "fin", [
+                        createNodeStep("especialista", "Archiva el caso")
+                    ])
+                ]
+            },
+            nivel3_especialista_5d: {
+                pregunta: "Nivel 3. De las consultas hechas con los dueños del proceso ¿cómo continuamos con la atención de este reclamo?",
+                opciones: [
+                    buildOption("El jefe recibe el informe y lo revisa en 2 días pudiendo aprobarlo o no.", "nivel4_jefe_2d", [
+                        createNodeStep("jefe", "Recibe el informe y lo revisa en 2 días")
+                    ]),
+                    buildOption("El jefe archiva el informe y culmina el proceso.", "fin", [
+                        createNodeStep("jefe", "Archiva el informe")
+                    ]),
+                    buildOption("El jefe recibe el informe y no tiene plazo para revisarlo y aprobarlo o no.", "nivel4_jefe_sin_plazo", [
+                        createNodeStep("jefe", "Recibe el informe sin plazo para revisarlo")
+                    ])
+                ]
+            },
+            nivel3_especialista_sin_plazo: {
+                pregunta: "Nivel 3. Estamos avanzando, sigamos con el mapeo.",
+                opciones: [
+                    buildOption("El jefe recibe el informe y lo revisa en 2 días pudiendo aprobarlo o no.", "nivel4_jefe_2d", [
+                        createNodeStep("jefe", "Recibe el informe y lo revisa en 2 días")
+                    ]),
+                    buildOption("El jefe archiva el informe y culmina el proceso.", "fin", [
+                        createNodeStep("jefe", "Archiva el informe")
+                    ]),
+                    buildOption("El jefe recibe el informe y no tiene plazo para revisarlo y aprobarlo o no.", "nivel4_jefe_sin_plazo", [
+                        createNodeStep("jefe", "Recibe el informe sin plazo para revisarlo")
+                    ])
+                ]
+            },
+            nivel2_derivar_jefe: {
+                pregunta: "Nivel 2. Para derivarlo al jefe con informe. Sigamos mapeando.",
+                opciones: [
+                    buildOption("El jefe recibe el informe y lo revisa en 2 días pudiendo aprobarlo o no.", "nivel3_jefe_2d_directo", [
+                        createNodeStep("jefe", "Recibe el informe y lo revisa en 2 días")
+                    ]),
+                    buildOption("El jefe archiva el informe y culmina el proceso.", "fin", [
+                        createNodeStep("jefe", "Archiva el informe")
+                    ]),
+                    buildOption("El jefe recibe el informe y no tiene plazo para revisarlo y aprobarlo o no.", "nivel3_jefe_sin_plazo_directo", [
+                        createNodeStep("jefe", "Recibe el informe sin plazo para revisarlo")
+                    ])
+                ]
+            },
+            nivel4_jefe_2d: {
+                pregunta: "Nivel 4. Estás levantando un proceso bastante real ¿cómo continuamos?",
+                opciones: reviewOptions("nivel5_reproceso_notificacion", "nivel5_reproceso_archivo", "fin")
+            },
+            nivel4_jefe_sin_plazo: {
+                pregunta: "Nivel 4. Sigamos diseñando este proceso.",
+                opciones: reviewOptions("nivel5_reproceso_notificacion", "nivel5_reproceso_archivo", "fin")
+            },
+            nivel3_jefe_2d_directo: {
+                pregunta: "Nivel 3. Estás levantando un proceso bastante real ¿cómo continuamos?",
+                opciones: reviewOptions("nivel4_reproceso_notificacion_directo", "nivel4_reproceso_archivo_directo", "fin")
+            },
+            nivel3_jefe_sin_plazo_directo: {
+                pregunta: "Nivel 3. Sigamos diseñando este proceso.",
+                opciones: reviewOptions("nivel4_reproceso_notificacion_directo", "nivel4_reproceso_archivo_directo", "fin")
+            },
+            nivel5_reproceso_notificacion: {
+                pregunta: "Nivel 5. Muy bien, ahora incluso se ha generado un reproceso ¿cómo se desarrolla el siguiente paso?",
+                opciones: [
+                    buildOption("Si el informe se aprobó y notificó el proceso termina; si no se aprobó, el especialista subsana observaciones y remite al jefe, quien puede volver a revisar y aprobar u observar, repitiéndose en bucle hasta su aprobación.", "fin", [
+                    ], [
+                        createLink("subsanacion_actual", "revision_actual", "Bucle de revisión"),
+                        createLink("firma_actual", "end", "Fin")
+                    ], false),
+                    buildOption("De no aprobarse el informe el especialista recibe las observaciones y las archiva culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Recibe observaciones y archiva el caso", "activity", {
+                            fromBookmark: "subsanacion_actual",
+                            bookmark: "archivo_obs_actual"
+                        })
+                    ], [
+                        createLink("archivo_obs_actual", "end", "Fin")
+                    ], false),
+                    buildOption("De no aprobarse el informe el especialista genera un nuevo informe en el que decide culminar el reclamo y notificar directamente al usuario, culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Genera nuevo informe para culminar el reclamo", "activity", {
+                            fromBookmark: "subsanacion_actual"
+                        }),
+                        createNodeStep("asistente", "Notifica directamente al usuario", "activity", {
+                            bookmark: "notifica_directa_actual"
+                        })
+                    ], [
+                        createLink("notifica_directa_actual", "end", "Fin")
+                    ], false)
+                ]
+            },
+            nivel5_reproceso_archivo: {
+                pregunta: "Nivel 5. De aprobarlo lo archiva; de no aprobarlo lo regresa para que se corrija por el especialista en un plazo de un día. ¿Qué paso podría continuar?",
+                opciones: [
+                    buildOption("El especialista recibe y levanta observaciones; si este nuevo informe se aprueba el jefe lo archiva y culmina el proceso; de no aprobarse lo regresa al especialista y genera un bucle.", "fin", [
+                    ], [
+                        createLink("subsanacion_actual", "revision_actual", "Bucle"),
+                        createLink("archivo_aprobado_actual", "end", "Culmina")
+                    ], false),
+                    buildOption("El especialista recibe las observaciones y archiva culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Recibe observaciones y archiva", "activity", {
+                            fromBookmark: "subsanacion_actual",
+                            bookmark: "archivo_obs_actual"
+                        })
+                    ], [
+                        createLink("archivo_obs_actual", "end", "Fin")
+                    ], false),
+                    buildOption("El especialista emite un nuevo informe y notifica directamente al usuario, culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Emite nuevo informe", "activity", {
+                            fromBookmark: "subsanacion_actual"
+                        }),
+                        createNodeStep("asistente", "Notifica directamente al usuario", "activity", {
+                            bookmark: "notifica_directa_actual"
+                        })
+                    ], [
+                        createLink("notifica_directa_actual", "end", "Fin")
+                    ], false)
+                ]
+            },
+            nivel4_reproceso_notificacion_directo: {
+                pregunta: "Nivel 4. Muy bien, ahora incluso se ha generado un reproceso ¿cómo se desarrolla el siguiente paso?",
+                opciones: [
+                    buildOption("Si el informe se aprobó y notificó el proceso termina; si no se aprobó, el especialista subsana observaciones y remite al jefe, quien puede volver a revisar y aprobar u observar, repitiéndose en bucle hasta su aprobación.", "fin", [
+                    ], [
+                        createLink("subsanacion_actual", "revision_actual", "Bucle de revisión"),
+                        createLink("firma_actual", "end", "Fin")
+                    ], false),
+                    buildOption("De no aprobarse el informe el especialista recibe las observaciones y las archiva culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Recibe observaciones y archiva el caso", "activity", {
+                            fromBookmark: "subsanacion_actual",
+                            bookmark: "archivo_obs_actual"
+                        })
+                    ], [
+                        createLink("archivo_obs_actual", "end", "Fin")
+                    ], false),
+                    buildOption("De no aprobarse el informe el especialista genera un nuevo informe en el que decide culminar el reclamo y notificar directamente al usuario, culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Genera nuevo informe para culminar el reclamo", "activity", {
+                            fromBookmark: "subsanacion_actual"
+                        }),
+                        createNodeStep("asistente", "Notifica directamente al usuario", "activity", {
+                            bookmark: "notifica_directa_actual"
+                        })
+                    ], [
+                        createLink("notifica_directa_actual", "end", "Fin")
+                    ], false)
+                ]
+            },
+            nivel4_reproceso_archivo_directo: {
+                pregunta: "Nivel 4. De aprobarlo lo archiva; de no aprobarlo lo regresa para que se corrija por el especialista en un plazo de un día. ¿Qué paso podría continuar?",
+                opciones: [
+                    buildOption("El especialista recibe y levanta observaciones; si este nuevo informe se aprueba el jefe lo archiva y culmina el proceso; de no aprobarse lo regresa al especialista y genera un bucle.", "fin", [
+                    ], [
+                        createLink("subsanacion_actual", "revision_actual", "Bucle"),
+                        createLink("archivo_aprobado_actual", "end", "Culmina")
+                    ], false),
+                    buildOption("El especialista recibe las observaciones y archiva culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Recibe observaciones y archiva", "activity", {
+                            fromBookmark: "subsanacion_actual",
+                            bookmark: "archivo_obs_actual"
+                        })
+                    ], [
+                        createLink("archivo_obs_actual", "end", "Fin")
+                    ], false),
+                    buildOption("El especialista emite un nuevo informe y notifica directamente al usuario, culminando el proceso.", "fin", [
+                        createNodeStep("especialista", "Emite nuevo informe", "activity", {
+                            fromBookmark: "subsanacion_actual"
+                        }),
+                        createNodeStep("asistente", "Notifica directamente al usuario", "activity", {
+                            bookmark: "notifica_directa_actual"
+                        })
+                    ], [
+                        createLink("notifica_directa_actual", "end", "Fin")
+                    ], false)
+                ]
+            }
+        };
+
+        function resetFlowState() {
+            stepNumber = 0;
+            nodeIndex = 0;
+            currentNodeId = "inicioNode";
+            historyLabels = [];
+            diagramNodes = [];
+            gatewayNodeIds = [];
+            edges = [];
+            bookmarks = {};
+            usedEdgeKeys = new Set();
+            endCreated = false;
+            rankingActual = [];
+            diagramStarted = false;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function normalizeLabel(text) {
+            return text.replace(/"/g, "'").trim();
+        }
+
+        function getActorLabel(lane) {
+            const actorMap = {
+                entrada: "Usuario",
+                asistente: "Asistente administrativo",
+                especialista: "Especialista",
+                jefe: "Jefe"
+            };
+            return actorMap[lane] || "Actor";
+        }
+
+        function makeNode(shape, label, id) {
+            const clean = normalizeLabel(label);
+            if (shape === "gateway") {
+                return `${id}{"${clean}"}`;
+            }
+            if (shape === "event") {
+                return `${id}(("${clean}"))`;
+            }
+            return `${id}["${clean}"]`;
+        }
+
+        function nextNodeId() {
+            nodeIndex += 1;
+            return `n${nodeIndex}`;
+        }
+
+        function addEdge(from, to, label = "") {
+            if (!from || !to) return;
+            const key = `${from}|${to}|${label}`;
+            if (usedEdgeKeys.has(key)) return;
+            usedEdgeKeys.add(key);
+            edges.push(label ? `${from} -- ${label} --> ${to}` : `${from} --> ${to}`);
+        }
+
+        function ensureEndNode() {
+            if (!endCreated) {
+                endCreated = true;
+            }
+            return "finNode";
+        }
+
+        function addProcessNode(step) {
+            stepNumber += 1;
+            const id = nextNodeId();
+            const actorLabel = getActorLabel(step.lane);
+            const numberedLabel = `${stepNumber}. [${actorLabel}] ${step.label}`;
+            const nodeCode = makeNode(step.shape || "activity", numberedLabel, id);
+            diagramNodes.push(nodeCode);
+            if ((step.shape || "activity") === "gateway") {
+                gatewayNodeIds.push(id);
+            }
+
+            if (step.bookmark) {
+                bookmarks[step.bookmark] = id;
+            }
+
+            const originId = step.fromBookmark ? bookmarks[step.fromBookmark] : currentNodeId;
+            addEdge(originId, id, step.edgeLabel || "");
+
+            if (!step.detached) {
+                currentNodeId = id;
+            }
+
+            return id;
+        }
+
+        function applyOption(option) {
+            diagramStarted = true;
+            option.steps.forEach(addProcessNode);
+
+            option.links.forEach(link => {
+                const fromId = link.fromBookmark === "end" ? ensureEndNode() : bookmarks[link.fromBookmark];
+                const toId = link.toBookmark === "end" ? ensureEndNode() : bookmarks[link.toBookmark];
+                addEdge(fromId, toId, link.label || "");
+            });
+
+            historyLabels.push(option.texto);
+            updateHistory();
+            updateMeta();
+
+            if (option.next === "fin") {
+                finalizePath(option.autoEnd);
+                return;
+            }
+
+            currentQuestionId = option.next;
+            renderQuestion(currentQuestionId);
+            renderMermaid();
+        }
+
+        function buildMermaidCode() {
+            const lines = [
+                "flowchart LR",
+                "classDef proceso fill:#e8f4ff,stroke:#74a9d8,color:#213547,stroke-width:1.2px;",
+                "classDef inicio fill:#dff8ea,stroke:#4fa66a,color:#173950,stroke-width:2px;",
+                "classDef fin fill:#ffd9de,stroke:#d14b5a,color:#6b1f28,stroke-width:2px;",
+                "classDef decision fill:#fff5da,stroke:#d8b45f,color:#6f5600,stroke-width:2px;",
+                'finNode(("Fin"))',
+                'inicioNode(("Inicio"))'
+            ];
+
+            diagramNodes.forEach(node => lines.push(node));
+            edges.forEach(edge => lines.push(edge));
+
+            lines.push("class inicioNode inicio;");
+            lines.push("class finNode fin;");
+
+            if (nodeIndex > 0) {
+                const ids = Array.from({ length: nodeIndex }, (_, index) => `n${index + 1}`).join(",");
+                lines.push(`class ${ids} proceso;`);
+            }
+            if (gatewayNodeIds.length) {
+                lines.push(`class ${gatewayNodeIds.join(",")} decision;`);
+            }
+
+            return lines.join("\n");
+        }
+
+        async function renderMermaid() {
+            const graphDiv = document.getElementById("mermaid-graph");
+            if (!diagramStarted && stepNumber === 0) {
+                graphDiv.innerHTML = '<div class="blank-canvas">El mapa del proceso aparecerá aquí conforme el alumno vaya tomando decisiones.</div>';
+                return;
+            }
+            graphDiv.innerHTML = buildMermaidCode();
+            graphDiv.removeAttribute("data-processed");
+            await mermaid.run({ nodes: [graphDiv] });
+        }
+
+        function renderQuestion(id) {
+            const data = arbolDecision[id];
+            if (!data) return;
+
+            document.getElementById("pregunta-actual").textContent = data.pregunta;
+            const contenedor = document.getElementById("lista-opciones");
+            contenedor.innerHTML = "";
+
+            data.opciones.forEach(option => {
+                const button = document.createElement("button");
+                button.className = "opcion-btn";
+                button.innerHTML = escapeHtml(option.texto);
+                button.addEventListener("click", () => applyOption(option));
+                contenedor.appendChild(button);
+            });
+        }
+
+        function updateHistory() {
+            const wrap = document.getElementById("historial-ruta");
+            if (!historyLabels.length) {
+                wrap.innerHTML = '<div class="historial-item">Aún no se registran decisiones.</div>';
+                return;
+            }
+
+            wrap.innerHTML = historyLabels
+                .map((item, index) => `<div class="historial-item"><strong>Paso de decisión ${index + 1}.</strong> ${escapeHtml(item)}</div>`)
+                .join("");
+        }
+
+        function updateMeta() {
+            document.getElementById("meta-complejidad").textContent = String(stepNumber);
+        }
+
+        function startTimer() {
+            if (temporizador) clearInterval(temporizador);
+            temporizador = setInterval(() => {
+                const elapsed = ((Date.now() - tiempoInicio) / 1000).toFixed(1);
+                document.getElementById("meta-tiempo").textContent = `${elapsed} s`;
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (temporizador) {
+                clearInterval(temporizador);
+                temporizador = null;
+            }
+        }
+
+        function readRanking() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : null;
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function writeRanking(entries) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        function saveCurrentResult() {
+            const tiempo = Number(((Date.now() - tiempoInicio) / 1000).toFixed(1));
+            const nuevo = { nombre: nombreUsuario, complejidad: stepNumber, tiempo };
+            const ranking = [...readRanking(), nuevo]
+                .sort((a, b) => b.complejidad - a.complejidad || a.tiempo - b.tiempo)
+                .slice(0, 20);
+            writeRanking(ranking);
+            return ranking;
+        }
+
+        function renderPodium(entries) {
+            const podium = document.getElementById("podium");
+            const top3 = [entries[1], entries[0], entries[2]].filter(Boolean);
+            const medalMap = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+            if (!top3.length) {
+                podium.innerHTML = `
+                    <div class="podium-card place-1" style="grid-column: 1 / -1; min-height: 180px;">
+                        <strong>Aún no hay resultados registrados</strong>
+                        <span>El cuadro de honor se llenará con alumnos que usen el simulador.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            podium.innerHTML = top3.map(entry => {
+                const puesto = entries.indexOf(entry) + 1;
+                return `
+                    <div class="podium-card place-${puesto}">
+                        <div class="podium-medal">${medalMap[puesto]}</div>
+                        <strong>${escapeHtml(entry.nombre)}${entry.nombre === nombreUsuario ? " (TÚ)" : ""}</strong>
+                        <span>Puesto ${puesto}</span>
+                        <span>Complejidad: ${entry.complejidad}</span>
+                        <span>Tiempo: ${entry.tiempo.toFixed(1)} s</span>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderRankingTable(entries) {
+            const tbody = document.getElementById("lista-ranking");
+            const medals = ["🥇", "🥈", "🥉", "🏅", "🏅"];
+            if (!entries.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4">Aún no hay alumnos registrados en el cuadro de honor.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = entries.slice(0, 5).map((entry, index) => `
+                <tr>
+                    <td class="medal">${index + 1} ${medals[index]}</td>
+                    <td>${escapeHtml(entry.nombre)}${entry.nombre === nombreUsuario ? " (TÚ)" : ""}</td>
+                    <td>${entry.complejidad}</td>
+                    <td>${entry.tiempo.toFixed(1)} s</td>
+                </tr>
+            `).join("");
+        }
+
+        async function finalizePath(autoEnd = true) {
+            ensureEndNode();
+            if (autoEnd) {
+                addEdge(currentNodeId, "finNode", "Fin");
+            }
+            await renderMermaid();
+            stopTimer();
+            rankingActual = saveCurrentResult();
+            document.getElementById("pregunta-actual").textContent = "Proceso finalizado";
+            document.getElementById("lista-opciones").innerHTML = "";
+            document.getElementById("panel-cierre").classList.remove("hidden");
+            document.getElementById("mensaje-cierre").textContent =
+                "El mapa BPMN ya muestra el nodo de cierre de esta ruta. Puedes revisarlo antes de pasar al cuadro de honor.";
+
+            confetti({
+                particleCount: 180,
+                spread: 90,
+                origin: { y: 0.6 }
+            });
+        }
+
+        function irAlRanking() {
+            const ranking = rankingActual.length ? rankingActual : saveCurrentResult();
+            document.getElementById("simulador").classList.add("hidden");
+            document.getElementById("ranking").classList.add("active");
+            renderPodium(ranking.slice(0, 3));
+            renderRankingTable(ranking);
+        }
+
+        async function descargarProcesoPDF() {
+            const target = document.getElementById("mermaid-wrap");
+            if (!target) return;
+
+            if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
+                alert("No se pudo cargar la herramienta para exportar el PDF.");
+                return;
+            }
+
+            const canvas = await html2canvas(target, {
+                backgroundColor: "#ffffff",
+                scale: 2,
+                useCORS: true
+            });
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
+                unit: "pt",
+                format: "a4"
+            });
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 28;
+            const usableWidth = pageWidth - margin * 2;
+            const usableHeight = pageHeight - 100;
+            const ratio = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
+            const imgWidth = canvas.width * ratio;
+            const imgHeight = canvas.height * ratio;
+            const x = (pageWidth - imgWidth) / 2;
+
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(16);
+            pdf.text("Diseñando Procesos - Mapa BPMN", margin, 30);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(11);
+            pdf.text(`Alumno: ${nombreUsuario}`, margin, 48);
+            pdf.text(`Complejidad alcanzada: ${stepNumber}`, margin, 62);
+            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, 82, imgWidth, imgHeight);
+            pdf.save(`proceso-${nombreUsuario.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+        }
+
+        function mostrarLogin() {
+            document.getElementById("portada").classList.remove("active");
+            document.getElementById("login").classList.add("active");
+        }
+
+        function iniciarSimulador() {
+            const input = document.getElementById("nombreAlumno");
+            nombreUsuario = input.value.trim();
+
+            if (!nombreUsuario) {
+                alert("Por favor ingresa tu nombre.");
+                input.focus();
+                return;
+            }
+
+            resetFlowState();
+            currentQuestionId = "inicio";
+            tiempoInicio = Date.now();
+
+            document.getElementById("login").classList.remove("active");
+            document.getElementById("ranking").classList.remove("active");
+            document.getElementById("simulador").style.display = "grid";
+            document.getElementById("simulador").classList.remove("hidden");
+            document.getElementById("bienvenida-usuario").textContent = `Bienvenida/o ${nombreUsuario}`;
+            document.getElementById("meta-tiempo").textContent = "0.0 s";
+            document.getElementById("panel-cierre").classList.add("hidden");
+            updateMeta();
+            updateHistory();
+            renderQuestion(currentQuestionId);
+            renderMermaid();
+            startTimer();
+        }
+
+        function reiniciarSimulador() {
+            stopTimer();
+            document.getElementById("nombreAlumno").value = "";
+            document.getElementById("ranking").classList.remove("active");
+            document.getElementById("simulador").style.display = "none";
+            document.getElementById("simulador").classList.remove("hidden");
+            document.getElementById("login").classList.add("active");
+            document.getElementById("portada").classList.remove("active");
+        }
+
+        updateHistory();
+        renderMermaid();
+    </script>
+</body>
+</html>
