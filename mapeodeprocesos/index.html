@@ -1329,46 +1329,87 @@
         }
 
         async function descargarProcesoPDF() {
-            const target = document.getElementById("mermaid-wrap");
-            if (!target) return;
+            const target = document.getElementById("mermaid-graph");
+            const svg = target ? target.querySelector("svg") : null;
+            if (!target || !svg) {
+                alert("Todavía no hay un mapa de proceso para exportar.");
+                return;
+            }
 
             if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
                 alert("No se pudo cargar la herramienta para exportar el PDF.");
                 return;
             }
 
-            const canvas = await html2canvas(target, {
-                backgroundColor: "#ffffff",
-                scale: 2,
-                useCORS: true
-            });
+            const previousStyles = {
+                width: target.style.width,
+                height: target.style.height,
+                overflow: target.style.overflow,
+                background: target.style.background,
+                padding: target.style.padding
+            };
 
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
-                unit: "pt",
-                format: "a4"
-            });
+            try {
+                const bbox = svg.getBBox();
+                const padding = 32;
+                const exportWidth = Math.ceil(Math.max(target.scrollWidth, bbox.x + bbox.width + padding));
+                const exportHeight = Math.ceil(Math.max(target.scrollHeight, bbox.y + bbox.height + padding));
 
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 28;
-            const usableWidth = pageWidth - margin * 2;
-            const usableHeight = pageHeight - 100;
-            const ratio = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
-            const imgWidth = canvas.width * ratio;
-            const imgHeight = canvas.height * ratio;
-            const x = (pageWidth - imgWidth) / 2;
+                target.style.width = `${exportWidth}px`;
+                target.style.height = `${exportHeight}px`;
+                target.style.overflow = "visible";
+                target.style.background = "#ffffff";
+                target.style.padding = "16px";
 
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(16);
-            pdf.text("Diseñando Procesos - Mapa BPMN", margin, 30);
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(11);
-            pdf.text(`Alumno: ${nombreUsuario}`, margin, 48);
-            pdf.text(`Complejidad alcanzada: ${stepNumber}`, margin, 62);
-            pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, 82, imgWidth, imgHeight);
-            pdf.save(`proceso-${nombreUsuario.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+                const canvas = await html2canvas(target, {
+                    backgroundColor: "#ffffff",
+                    scale: 2,
+                    useCORS: true,
+                    width: target.scrollWidth,
+                    height: target.scrollHeight,
+                    windowWidth: target.scrollWidth,
+                    windowHeight: target.scrollHeight,
+                    scrollX: 0,
+                    scrollY: 0
+                });
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: canvas.width >= canvas.height ? "landscape" : "portrait",
+                    unit: "pt",
+                    format: "a4"
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 28;
+                const headerHeight = 82;
+                const usableWidth = pageWidth - margin * 2;
+                const usableHeight = pageHeight - headerHeight - margin;
+                const ratio = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
+                const imgWidth = canvas.width * ratio;
+                const imgHeight = canvas.height * ratio;
+                const x = (pageWidth - imgWidth) / 2;
+
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(16);
+                pdf.text("Diseñando Procesos - Mapa BPMN", margin, 30);
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(11);
+                pdf.text(`Alumno: ${nombreUsuario}`, margin, 48);
+                pdf.text(`Complejidad alcanzada: ${stepNumber}`, margin, 62);
+                pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, headerHeight, imgWidth, imgHeight);
+                pdf.save(`proceso-${nombreUsuario.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+            } catch (error) {
+                console.error("Error al generar PDF", error);
+                alert("No se pudo generar el PDF. Intenta nuevamente después de que el gráfico termine de cargarse.");
+            } finally {
+                target.style.width = previousStyles.width;
+                target.style.height = previousStyles.height;
+                target.style.overflow = previousStyles.overflow;
+                target.style.background = previousStyles.background;
+                target.style.padding = previousStyles.padding;
+            }
         }
 
         function mostrarLogin() {
